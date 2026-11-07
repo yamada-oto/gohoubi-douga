@@ -20,6 +20,9 @@
   button:focus, input:focus { outline:4px solid var(--accent); outline-offset:2px; }
   #playerWrap { position:relative; width:100%; aspect-ratio:16/9; background:#000; }
   #player { position:absolute; inset:0; width:100%; height:100%; }
+  /* 抜け道ふさぎ: YouTube のロゴ・タイトル・おすすめを押せなくする透明な板 */
+  #shield { position:absolute; inset:0; z-index:2; background:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+  #shield.ended { background:rgba(0,0,0,.92); display:flex; align-items:center; justify-content:center; font-size:28px; }
   .nums { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin:10px 0; }
   .box { background:#1d1d1d; border-radius:8px; padding:8px 12px; }
   .box .k { color:var(--sub); font-size:16px; }
@@ -32,18 +35,19 @@
 </head>
 <body>
 <main>
-  <h1>ごほうび動画 試しのページ(【01】動作確認)</h1>
+  <h1>ごほうび動画 試しのページ(【01】動作確認・抜け道ふさぎ版)</h1>
 
   <div class="row">
     <input id="vid" placeholder="YouTube の URL か動画ID" value="M7lc1UVf-VE">
     <button id="load">読み込む</button>
   </div>
 
-  <div id="playerWrap"><div id="player"></div></div>
+  <div id="playerWrap"><div id="player"></div><div id="shield"></div></div>
 
   <div class="row">
     <button id="play">▶ 再生</button>
     <button id="pause">❚❚ 一時停止</button>
+    <button id="back">10秒もどる</button>
     <button id="skip">30秒先へ</button>
     <button id="reset">数字を0に</button>
   </div>
@@ -94,7 +98,7 @@
     var id = parseId($("vid").value) || "M7lc1UVf-VE";
     player = new YT.Player("player", {
       videoId: id,
-      playerVars: { playsinline: 1, rel: 0, origin: location.origin },
+      playerVars: { playsinline: 1, rel: 0, controls: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: location.origin },
       events: {
         onReady: function () { ready = true; log("準備完了(動画ID " + id + ")"); },
         onStateChange: function (e) {
@@ -102,6 +106,9 @@
           log("状態: " + name + "  再生位置 " + fmt(player.getCurrentTime ? player.getCurrentTime() : 0));
           if (e.data === 1) wallOn = true;
           if (e.data === 0) wallOn = false;
+          var sh = $("shield");
+          if (e.data === 0) { sh.className = "ended"; sh.textContent = "おわり"; }
+          else { sh.className = ""; sh.textContent = ""; }
           lastPos = null;
         },
         onError: function (e) {
@@ -141,6 +148,12 @@
   $("play").onclick = function () { if (player && player.playVideo) player.playVideo(); };
   $("pause").onclick = function () { if (player && player.pauseVideo) player.pauseVideo(); };
   $("skip").onclick = function () { if (player && player.seekTo) player.seekTo(player.getCurrentTime() + 30, true); log("30秒先へ(数えない)"); };
+  $("back").onclick = function () { if (player && player.seekTo) player.seekTo(Math.max(0, player.getCurrentTime() - 10), true); log("10秒もどる"); };
+  $("shield").onclick = function () {
+    if (!player || !player.getPlayerState) return;
+    if (player.getPlayerState() === 1) player.pauseVideo(); else player.playVideo();
+  };
+  $("shield").oncontextmenu = function (e) { e.preventDefault(); };
   $("reset").onclick = function () { mainSec = 0; wallSec = 0; log("数字を0に"); };
 
   var s = document.createElement("script");
