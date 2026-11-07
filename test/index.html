@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>ごほうび動画 試し</title>
+<style>
+  :root { --bg:#111; --fg:#f2f2f2; --sub:#aaa; --accent:#ffcc33; --ok:#5fd17a; --ng:#ff6b6b; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans",sans-serif; font-size:20px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  h1 { font-size:24px; margin:4px 0 12px; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0; }
+  input { font-size:20px; padding:8px; width:min(520px,100%); }
+  button { font-size:20px; padding:10px 16px; border-radius:8px; border:2px solid #555; background:#2a2a2a; color:var(--fg); }
+  button:focus, input:focus { outline:4px solid var(--accent); outline-offset:2px; }
+  #playerWrap { position:relative; width:100%; aspect-ratio:16/9; background:#000; }
+  #player { position:absolute; inset:0; width:100%; height:100%; }
+  .nums { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin:10px 0; }
+  .box { background:#1d1d1d; border-radius:8px; padding:8px 12px; }
+  .box .k { color:var(--sub); font-size:16px; }
+  .box .v { font-size:30px; font-variant-numeric:tabular-nums; }
+  #main .v { color:var(--ok); }
+  #err { color:var(--ng); font-weight:bold; }
+  #log { font-size:15px; color:var(--sub); max-height:220px; overflow:auto; background:#1a1a1a; padding:8px; border-radius:8px; white-space:pre-wrap; }
+  #env { font-size:14px; color:var(--sub); word-break:break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ごほうび動画 試しのページ(【01】動作確認)</h1>
+
+  <div class="row">
+    <input id="vid" placeholder="YouTube の URL か動画ID" value="M7lc1UVf-VE">
+    <button id="load">読み込む</button>
+  </div>
+
+  <div id="playerWrap"><div id="player"></div></div>
+
+  <div class="row">
+    <button id="play">▶ 再生</button>
+    <button id="pause">❚❚ 一時停止</button>
+    <button id="skip">30秒先へ</button>
+    <button id="reset">数字を0に</button>
+  </div>
+
+  <div class="nums">
+    <div class="box" id="main"><div class="k">本編を見た時間(数える時間)</div><div class="v" id="vMain">0:00</div></div>
+    <div class="box"><div class="k">再生ボタンからの経過(壁の時計)</div><div class="v" id="vWall">0:00</div></div>
+    <div class="box"><div class="k">いまの状態</div><div class="v" id="vState">-</div></div>
+    <div class="box"><div class="k">再生位置 / 動画の長さ</div><div class="v" id="vPos">-</div></div>
+  </div>
+  <div id="err"></div>
+
+  <h2 style="font-size:18px">記録(状態が変わった時刻)</h2>
+  <div id="log"></div>
+  <p id="env"></p>
+</main>
+
+<script>
+(function () {
+  var STATE = { "-1": "開始前", "0": "終了", "1": "再生中", "2": "一時停止", "3": "読み込み中", "5": "準備完了" };
+  var ERR = {
+    2: "動画IDが正しくない", 5: "この機器で再生できない形式", 100: "動画が見つからない(削除・非公開)",
+    101: "埋め込み再生が許可されていない動画", 150: "埋め込み再生が許可されていない動画",
+    152: "埋め込みの設定エラー(152)", 153: "送り元の情報が足りない(153)"
+  };
+  var player = null, ready = false;
+  var mainSec = 0, wallSec = 0, wallOn = false, lastPos = null, lastTick = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fmt(s) { s = Math.floor(s); var m = Math.floor(s / 60), r = s % 60; return m + ":" + (r < 10 ? "0" : "") + r; }
+  function log(msg) {
+    var d = new Date(), t = d.toTimeString().slice(0, 8);
+    $("log").textContent = t + "  " + msg + "\n" + $("log").textContent;
+  }
+  function parseId(text) {
+    text = (text || "").trim();
+    var m = text.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+    if (m) return m[1];
+    if (/^[A-Za-z0-9_-]{11}$/.test(text)) return text;
+    return null;
+  }
+
+  $("env").textContent = "機器の情報: " + navigator.userAgent +
+    " / ホーム画面から起動: " + ((window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches) ? "はい" : "いいえ") +
+    " / 置き場所: " + location.origin;
+
+  window.onYouTubeIframeAPIReady = function () {
+    var id = parseId($("vid").value) || "M7lc1UVf-VE";
+    player = new YT.Player("player", {
+      videoId: id,
+      playerVars: { playsinline: 1, rel: 0, origin: location.origin },
+      events: {
+        onReady: function () { ready = true; log("準備完了(動画ID " + id + ")"); },
+        onStateChange: function (e) {
+          var name = STATE[String(e.data)] || String(e.data);
+          log("状態: " + name + "  再生位置 " + fmt(player.getCurrentTime ? player.getCurrentTime() : 0));
+          if (e.data === 1) wallOn = true;
+          if (e.data === 0) wallOn = false;
+          lastPos = null;
+        },
+        onError: function (e) {
+          var msg = "エラー " + e.data + ": " + (ERR[e.data] || "不明");
+          $("err").textContent = msg; log(msg);
+        }
+      }
+    });
+  };
+
+  // 0.5秒ごとに、本編の再生位置が進んだ分だけを数える
+  setInterval(function () {
+    if (!ready || !player || !player.getPlayerState) return;
+    var now = Date.now();
+    var st = player.getPlayerState();
+    var pos = player.getCurrentTime() || 0;
+    var dur = player.getDuration() || 0;
+    if (wallOn && lastTick !== null) wallSec += (now - lastTick) / 1000;
+    lastTick = now;
+    if (st === 1 && lastPos !== null) {
+      var d = pos - lastPos;
+      if (d > 0 && d <= 1.5) mainSec += d;   // 先送り・巻き戻しは数えない
+    }
+    lastPos = (st === 1) ? pos : null;
+    $("vMain").textContent = fmt(mainSec);
+    $("vWall").textContent = fmt(wallSec);
+    $("vState").textContent = STATE[String(st)] || String(st);
+    $("vPos").textContent = fmt(pos) + " / " + fmt(dur);
+  }, 500);
+
+  $("load").onclick = function () {
+    var id = parseId($("vid").value);
+    if (!id) { $("err").textContent = "URL か動画ID を読み取れません"; return; }
+    $("err").textContent = "";
+    if (player && player.loadVideoById) { player.loadVideoById(id); log("読み込み: " + id); }
+  };
+  $("play").onclick = function () { if (player && player.playVideo) player.playVideo(); };
+  $("pause").onclick = function () { if (player && player.pauseVideo) player.pauseVideo(); };
+  $("skip").onclick = function () { if (player && player.seekTo) player.seekTo(player.getCurrentTime() + 30, true); log("30秒先へ(数えない)"); };
+  $("reset").onclick = function () { mainSec = 0; wallSec = 0; log("数字を0に"); };
+
+  var s = document.createElement("script");
+  s.src = "https://www.youtube.com/iframe_api";
+  s.onerror = function () { $("err").textContent = "YouTube の部品を読み込めませんでした"; };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
