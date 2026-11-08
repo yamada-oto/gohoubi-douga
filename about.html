@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>おうちのかたへ | ごほうびどうが</title>
+<style>
+  :root { --bg:#111; --fg:#f2f2f2; --sub:#b4b4b4; --card:#1d1d1d; --link:#8fc1ff; --accent:#ffcc33; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); }
+  body { font-family:system-ui,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif; font-size:22px; line-height:1.8; }
+  main { max-width:900px; margin:0 auto; padding:24px 28px 60px; }
+  h1 { font-size:32px; margin:12px 0 20px; }
+  h2 { font-size:24px; margin:32px 0 8px; }
+  section { background:var(--card); border-radius:14px; padding:6px 22px 14px; margin:16px 0; }
+  a { color:var(--link); }
+  a:focus-visible { outline:4px solid var(--accent); outline-offset:2px; }
+  ul { padding-left:1.2em; margin:8px 0; }
+  .back { display:inline-block; font-size:24px; padding:14px 28px; border-radius:14px; background:#2a2a2a; color:var(--fg);
+          text-decoration:none; border:2px solid #555; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./" id="back">もどる</a>
+  <h1>おうちのかたへ</h1>
+
+  <section>
+    <h2>YouTube の利用について</h2>
+    <p>このアプリは YouTube API Services を使って、YouTube の動画を探したり再生したりしています。</p>
+    <p>このアプリを利用すると、<a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube 利用規約</a>に同意したことになります。</p>
+    <p>Google による情報の扱いについては、<a href="http://www.google.com/policies/privacy" target="_blank" rel="noopener">Google プライバシーポリシー</a>をご覧ください。</p>
+  </section>
+
+  <section>
+    <h2>表示しない動画</h2>
+    <ul>
+      <li>保護者が作った除外リストにより、一部の動画を表示していません。</li>
+      <li>3分以下の縦長の動画と、1時間を超える動画は表示していません。</li>
+    </ul>
+    <p>これらは YouTube による制限ではなく、このアプリの作りによるものです。</p>
+  </section>
+
+  <section>
+    <h2>保存する情報</h2>
+    <p>次の情報を、ご家庭の Google スプレッドシートに保存します。</p>
+    <ul>
+      <li>お子さまの呼び名</li>
+      <li>見た動画と、見た秒数</li>
+      <li>追加した時間</li>
+    </ul>
+    <p>消したいときは、スプレッドシートの該当する行を削除してください。</p>
+    <p>保存した YouTube の情報(動画の題名など)は、30日以内に更新します。</p>
+  </section>
+
+  <a class="back" href="./" id="back2">もどる</a>
+</main>
+<script>
+  // 子供の画面から来たときは、同じ画面(# の設定つき)にもどる
+  ["back", "back2"].forEach(function (id) {
+    document.getElementById(id).onclick = function (e) {
+      if (history.length > 1) { e.preventDefault(); history.back(); }
+    };
+  });
+</script>
+</body>
+</html>

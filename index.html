@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ごほうびどうが">
+<title>ごほうびどうが</title>
+<style>
+  :root {
+    --bg:#111; --fg:#f4f4f4; --sub:#b4b4b4; --card:#1f1f1f; --line:#3a3a3a;
+    --accent:#ffcc33; --on:#2f6fdb; --ok:#5fd17a; --ng:#ff7b7b;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); }
+  body { font-family:system-ui,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif; font-size:26px; line-height:1.4;
+         -webkit-text-size-adjust:100%; }
+  [hidden] { display:none !important; }
+  button, input { font:inherit; color:inherit; }
+  button { min-height:76px; padding:12px 28px; border-radius:16px; border:3px solid var(--line); background:#2a2a2a;
+           cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  button:active { transform:scale(.97); }
+  button:focus-visible, input:focus-visible { outline:5px solid var(--accent); outline-offset:3px; }
+  button.big { font-size:32px; min-height:96px; padding:16px 40px; }
+  button.primary { background:var(--accent); color:#111; border-color:var(--accent); font-weight:bold; }
+  button[aria-pressed="true"] { background:var(--on); border-color:#8fb4ff; font-weight:bold; }
+  .screen { max-width:1366px; margin:0 auto; padding:20px 28px 40px; }
+  .center { text-align:center; }
+  .msg { font-size:30px; padding:28px; background:var(--card); border-radius:18px; text-align:center; margin:20px 0; }
+  .msg .row { justify-content:center; margin-top:18px; }
+  .row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+
+  /* ① */
+  #s-who h1 { font-size:48px; margin:40px 0 36px; text-align:center; }
+  #kids { display:flex; flex-wrap:wrap; gap:28px; justify-content:center; }
+  #kids button { font-size:44px; min-width:300px; min-height:150px; border-radius:24px; }
+  #toParent { display:block; margin:80px auto 0; width:max-content; font-size:20px; color:var(--sub); }
+
+  /* ② */
+  .top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
+         position:sticky; top:0; z-index:5; background:var(--bg); padding:12px 0; border-bottom:2px solid var(--line); }
+  .left-box .big-left { font-size:42px; font-weight:bold; }
+  .left-box .note { font-size:22px; color:var(--sub); }
+  .who-name { font-size:26px; color:var(--sub); }
+  #pickTitle { font-size:36px; margin:18px 0 8px; }
+  .search { display:flex; gap:12px; flex:1 1 520px; }
+  .search input { flex:1; min-width:0; min-height:76px; padding:10px 18px; border-radius:16px; border:3px solid var(--line);
+                  background:#fff; color:#111; font-size:28px; }
+  .check { display:inline-flex; align-items:center; gap:12px; min-height:76px; padding:8px 22px; border-radius:16px;
+           border:3px solid var(--line); background:#2a2a2a; cursor:pointer; }
+  .check input { width:36px; height:36px; margin:0; }
+  .favs-label { font-size:22px; color:var(--sub); margin:18px 0 8px; }
+  #favs button { font-size:24px; }
+  .source { font-size:22px; color:var(--sub); margin:22px 0 10px; }
+  #list { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:22px; }
+  .card { display:flex; flex-direction:column; align-items:stretch; text-align:left; padding:0; overflow:hidden;
+          min-height:0; border-radius:18px; background:var(--card); border:3px solid var(--line); }
+  .thumb { position:relative; background:#000; }
+  .thumb img { display:block; width:100%; height:auto; }
+  .card .info { padding:12px 14px 16px; }
+  .card .t { font-size:23px; font-weight:bold; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .card .c { font-size:20px; color:var(--sub); margin-top:6px; }
+  .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:20px; }
+  .tag { padding:2px 12px; border-radius:999px; background:#333; }
+  .tag.len { background:#333; }
+  .tag.resume { background:#5a4300; color:#ffe08a; }
+  .tag.seen { background:#1f4a2b; color:#bff5c9; }
+  #more { display:block; margin:28px auto 0; }
+  #loading { font-size:30px; text-align:center; padding:30px; color:var(--accent); }
+
+  /* ③ */
+  #s-watch .screen { padding-top:12px; }
+  #playerBox { width:min(100%, calc((100vh - 230px) * 16 / 9)); aspect-ratio:16/9; margin:0 auto; background:#000; }
+  #playerBox iframe { display:block; width:100%; height:100%; border:0; }
+  #watchTitle { font-size:22px; color:var(--sub); text-align:center; margin:10px 0 0; }
+  .under { display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:center; margin-top:14px; }
+  #watchLeft { font-size:38px; font-weight:bold; min-width:340px; text-align:center; }
+  #timeUpBox { display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:center; }
+  #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent); }
+
+  /* たしかめる */
+  #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; }
+  #confirm .box { background:#222; border-radius:24px; padding:44px 56px; text-align:center; border:3px solid var(--line); }
+  #confirm .q { font-size:44px; margin-bottom:30px; }
+</style>
+</head>
+<body>
+
+<!-- せっていがない -->
+<section id="s-nosetup" hidden>
+  <div class="screen"><div class="msg">せっていがまだだよ</div></div>
+</section>
+
+<!-- ① だれがみる? -->
+<section id="s-who" hidden>
+  <div class="screen">
+    <h1>だれがみる?</h1>
+    <div id="kids"></div>
+    <div id="whoLoading" class="msg" hidden>よみこんでいるよ</div>
+    <div id="whoErr" class="msg" hidden>うまくいかなかったよ<div class="row"><button class="big primary" data-retry>もういちど</button></div></div>
+    <a id="toParent" href="about.html">おうちのかたへ</a>
+  </div>
+</section>
+
+<!-- ② えらぶ -->
+<section id="s-pick" hidden>
+  <div class="screen">
+    <div class="top">
+      <div class="left-box">
+        <div class="big-left" id="pickLeft">のこり -ふん</div>
+        <div class="note">のこったじかんは、つぎにつかえるよ</div>
+      </div>
+      <div class="row">
+        <span class="who-name" id="whoName"></span>
+        <button id="addBtn">じかんをたす</button>
+        <button id="backNames">なまえにもどる</button>
+      </div>
+    </div>
+
+    <h2 id="pickTitle">えらぶ</h2>
+
+    <div id="pickErr" class="msg" hidden>うまくいかなかったよ<div class="row"><button class="big primary" data-retry>もういちど</button></div></div>
+
+    <div id="timeUpPick" class="msg" hidden>
+      じかんになったよ
+      <div class="row"><button class="big primary" id="addBtn2">じかんをたす</button></div>
+    </div>
+
+    <div id="pickMain">
+      <div class="row">
+        <form class="search" id="searchForm" autocomplete="off">
+          <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="さがす">
+          <button type="submit">さがす</button>
+        </form>
+        <button id="popBtn" aria-pressed="false">おもしろい</button>
+        <button id="safeBtn" aria-pressed="false">こわくない</button>
+        <label class="check"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
+      </div>
+
+      <div id="favWrap" hidden>
+        <div class="favs-label">すきなひと</div>
+        <div class="row" id="favs"></div>
+      </div>
+
+      <div class="source">YouTube のどうが</div>
+      <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
+      <div id="list"></div>
+      <div id="emptyMsg" class="msg" hidden>いまのじかんでみられるどうがはないよ。のこったじかんは、つぎにつかえるよ</div>
+      <div id="loading" hidden>さがしているよ</div>
+      <button id="more" class="big" hidden>ほかのどうがをみる</button>
+    </div>
+  </div>
+</section>
+
+<!-- ③ みる -->
+<section id="s-watch" hidden>
+  <div class="screen">
+    <div id="playerBox"></div>
+    <div id="watchTitle"></div>
+    <div class="under">
+      <div id="watchLeft">のこり</div>
+      <button class="big primary" id="nextBtn">つぎをえらぶ</button>
+      <div id="timeUpBox" hidden>
+        <span class="tu-text">じかんになったよ</span>
+        <button class="big" id="keepBtn">さいごまでみる</button>
+        <button class="big primary" id="nextBtn2">つぎをえらぶ</button>
+      </div>
+    </div>
+    <div id="watchErr" class="msg" hidden>このどうがは みられないよ</div>
+  </div>
+</section>
+
+<!-- じかんをたす? -->
+<div id="confirm" hidden>
+  <div class="box">
+    <div class="q">30ぷん たす?</div>
+    <div class="row" style="justify-content:center">
+      <button class="big primary" id="yesAdd">はい</button>
+      <button class="big" id="noAdd">やめる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TIMEOUT_MS = 20000;
+  var SAVE_EVERY_MS = 30000;
+
+  // ---- せってい(gas と pass は # からだけ読む。画面やログには出さない) ----
+  var hp = new URLSearchParams(location.hash.replace(/^#/, ""));
+  var GAS = hp.get("gas") || "";
+  var PASS = hp.get("pass") || "";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function show(name) {
+    ["s-nosetup", "s-who", "s-pick", "s-watch"].forEach(function (id) { $(id).hidden = (id !== name); });
+    window.scrollTo(0, 0);
+  }
+
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16); crypto.getRandomValues(b);
+    b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+    var h = Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join("");
+    return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+  }
+
+  function minsUp(sec) { return Math.max(0, Math.ceil(sec / 60)); }
+  function fmtLen(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    var ss = (s < 10 ? "0" : "") + s;
+    return h ? h + ":" + (m < 10 ? "0" : "") + m + ":" + ss : m + ":" + ss;
+  }
+
+  // ---- GAS との通信 ----
+  function api(action, data, opts) {
+    var body = { pass: PASS, action: action };
+    Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
+    var init = { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) };
+    if (opts && opts.keepalive) { init.keepalive = true; return fetch(GAS, init); }
+    var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+    if (ctrl) init.signal = ctrl.signal;
+    var timer;
+    var timeout = new Promise(function (_, reject) {
+      timer = setTimeout(function () { if (ctrl) ctrl.abort(); reject({ code: "timeout" }); }, TIMEOUT_MS);
+    });
+    var req = fetch(GAS, init).then(function (res) { return res.text(); }).then(function (text) {
+      var j;
+      try { j = JSON.parse(text); } catch (e) { throw { code: "not_json" }; }
+      if (!j || j.ok !== true) throw { code: (j && j.error) || "unknown" };
+      return j;
+    });
+    return Promise.race([req, timeout]).then(
+      function (v) { clearTimeout(timer); return v; },
+      function (e) {
+        clearTimeout(timer);
+        var code = (e && e.code) ? e.code : "network";
+        console.warn("gohoubi: " + action + " " + code); // URL と合言葉は出さない
+        throw { code: code };
+      }
+    );
+  }
+
+  // うまくいかなかったよ + もういちど
+  function showErr(boxId, retry) {
+    var box = $(boxId);
+    box.hidden = false;
+    box.querySelector("[data-retry]").onclick = function () { box.hidden = true; retry(); };
+  }
+
+  // ---- じょうたい ----
+  var S = null;        // えらんだ子のこと
+  var W = null;        // いまみている再生
+  var gen = 0;         // 一覧の読みこみ番号(古い答えをすてる)
+
+  // ================= ① だれがみる? =================
+  var kids = null;
+  function loadKids() {
+    $("whoErr").hidden = true;
+    $("whoLoading").hidden = false;
+    api("children").then(function (r) {
+      $("whoLoading").hidden = true;
+      kids = r.children || [];
+      renderKids();
+    }, function () {
+      $("whoLoading").hidden = true;
+      showErr("whoErr", loadKids);
+    });
+  }
+  function renderKids() {
+    var box = $("kids"); box.innerHTML = "";
+    kids.forEach(function (k) {
+      var b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = k.name;
+      b.onclick = function () { pickChild(k); };
+      box.appendChild(b);
+    });
+  }
+  function goWho() {
+    gen++;
+    S = null;
+    $("pickErr").hidden = true;
+    show("s-who");
+    if (!kids) loadKids();
+  }
+
+  function pickChild(k) {
+    $("whoErr").hidden = true;
+    $("whoLoading").hidden = false;
+    api("selectChild", { childId: k.childId }).then(function (r) {
+      $("whoLoading").hidden = true;
+      S = {
+        childId: k.childId, name: k.name,
+        remaining: Number(r.remainingSeconds) || 0,
+        favorites: r.favorites || [],
+        q: "", channelId: null, popular: false, notScary: false, hideWatched: false,
+        items: [], seen: {}, next: null, quota: false, loading: false, addReq: null
+      };
+      openPick("えらぶ");
+    }, function () {
+      $("whoLoading").hidden = true;
+      showErr("whoErr", function () { pickChild(k); });
+    });
+  }
+
+  // ================= ② えらぶ =================
+  function openPick(title) {
+    $("pickTitle").textContent = title;
+    $("whoName").textContent = S.name;
+    $("q").value = S.q;
+    $("popBtn").setAttribute("aria-pressed", String(S.popular));
+    $("safeBtn").setAttribute("aria-pressed", String(S.notScary));
+    $("hideSeen").checked = S.hideWatched;
+    renderFavs();
+    show("s-pick");
+    if (S.remaining > 0 && S.items.length === 0 && !S.loading) reload();
+    else renderPick();
+  }
+
+  function renderFavs() {
+    var box = $("favs"); box.innerHTML = "";
+    $("favWrap").hidden = !S.favorites.length;
+    S.favorites.forEach(function (f) {
+      var b = document.createElement("button");
+      b.textContent = f.name;
+      b.setAttribute("aria-pressed", String(S.channelId === f.channelId));
+      b.onclick = function () {
+        S.channelId = (S.channelId === f.channelId) ? null : f.channelId;
+        if (S.channelId) { S.q = ""; $("q").value = ""; }
+        renderFavs();
+        reload();
+      };
+      box.appendChild(b);
+    });
+  }
+
+  function renderPick() {
+    if (!S) return;
+    $("pickLeft").textContent = "のこり " + minsUp(S.remaining) + "ふん";
+    var over = S.remaining <= 0;
+    $("timeUpPick").hidden = !over;
+    $("pickMain").hidden = over;
+    $("loading").hidden = !S.loading;
+    $("more").hidden = S.loading || !S.next;
+    $("quotaMsg").hidden = !S.quota;
+    $("emptyMsg").hidden = S.loading || S.quota || S.items.length > 0 || !!S.next || !S.loaded;
+  }
+
+  function buildQuery(cursor) {
+    var q = { childId: S.childId, popular: S.popular, notScary: S.notScary, hideWatched: S.hideWatched, cursor: cursor || null };
+    if (S.q) { q.mode = "search"; q.q = S.q; if (S.channelId) q.channelId = S.channelId; }
+    else if (S.channelId) { q.mode = "channel"; q.channelId = S.channelId; }
+    else if (S.popular) { q.mode = "search"; q.q = ""; }
+    else { q.mode = "home"; }
+    return q;
+  }
+
+  // 条件が変わった: cursor を消して読みなおす
+  function reload() {
+    S.items = []; S.seen = {}; S.next = null; S.quota = false; S.loaded = false;
+    $("list").innerHTML = "";
+    load(false);
+  }
+
+  function load(more) {
+    var my = ++gen;
+    var autoLeft = 3;   // items が空で nextCursor があるときの自動の続き(1回の操作で3回まで)
+    S.loading = true;
+    $("pickErr").hidden = true;
+    renderPick();
+    var step = function (cursor) {
+      api("list", buildQuery(cursor)).then(function (r) {
+        if (my !== gen || !S) return;
+        if (typeof r.remainingSeconds === "number") S.remaining = r.remainingSeconds;
+        if (r.quota === true) S.quota = true;
+        var added = 0;
+        (r.items || []).forEach(function (it) {
+          if (!it || !it.videoId || S.seen[it.videoId]) return;
+          S.seen[it.videoId] = true;
+          S.items.push(it);
+          $("list").appendChild(card(it));
+          added++;
+        });
+        S.next = r.nextCursor || null;
+        if (added === 0 && S.next && autoLeft > 0 && S.remaining > 0) { autoLeft--; step(S.next); return; }
+        S.loading = false; S.loaded = true;
+        renderPick();
+      }, function () {
+        if (my !== gen || !S) return;
+        S.loading = false;
+        renderPick();
+        $("more").hidden = true;
+        showErr("pickErr", function () { if (more) load(true); else reload(); });
+      });
+    };
+    step(more ? S.next : null);
+  }
+
+  function card(it) {
+    var b = document.createElement("button");
+    b.className = "card";
+    var th = document.createElement("div"); th.className = "thumb";
+    var img = document.createElement("img");
+    img.src = it.thumbnail; img.alt = ""; img.loading = "lazy";
+    th.appendChild(img);
+    var info = document.createElement("div"); info.className = "info";
+    var t = document.createElement("div"); t.className = "t"; t.textContent = it.title;
+    var c = document.createElement("div"); c.className = "c"; c.textContent = it.channelTitle;
+    var tags = document.createElement("div"); tags.className = "tags";
+    var len = document.createElement("span"); len.className = "tag len"; len.textContent = fmtLen(it.seconds);
+    tags.appendChild(len);
+    var rs = document.createElement("span"); rs.className = "tag resume";
+    var sn = document.createElement("span"); sn.className = "tag seen"; sn.textContent = "みたよ";
+    tags.appendChild(rs); tags.appendChild(sn);
+    info.appendChild(t); info.appendChild(c); info.appendChild(tags);
+    b.appendChild(th); b.appendChild(info);
+    it._mark = function () {
+      rs.hidden = !it.resume;
+      if (it.resume) rs.textContent = "つづき " + minsUp(it.resume.left) + "ふん";
+      sn.hidden = !it.watched;
+    };
+    it._mark();
+    b.onclick = function () { openWatch(it); };
+    return b;
+  }
+
+  $("searchForm").onsubmit = function (e) {
+    e.preventDefault();
+    var v = $("q").value.trim();
+    $("q").blur();
+    if (v === S.q) { if (!v) return; }
+    S.q = v;
+    if (v && S.channelId) { S.channelId = null; renderFavs(); }
+    reload();
+  };
+  $("popBtn").onclick = function () {
+    S.popular = !S.popular; this.setAttribute("aria-pressed", String(S.popular)); reload();
+  };
+  $("safeBtn").onclick = function () {
+    S.notScary = !S.notScary; this.setAttribute("aria-pressed", String(S.notScary)); reload();
+  };
+  $("hideSeen").onchange = function () { S.hideWatched = this.checked; reload(); };
+  $("more").onclick = function () { if (S.next) load(true); };
+  $("backNames").onclick = goWho;
+
+  // じかんをたす
+  function askAdd() { $("confirm").hidden = false; }
+  $("addBtn").onclick = askAdd;
+  $("addBtn2").onclick = askAdd;
+  $("noAdd").onclick = function () { $("confirm").hidden = true; };
+  $("yesAdd").onclick = function () {
+    $("confirm").hidden = true;
+    S.addReq = uuid();          // 押すたびにあたらしい番号
+    sendAdd();
+  };
+  function sendAdd() {
+    var s = S; if (!s) return;
+    $("pickErr").hidden = true;
+    api("addTime", { childId: s.childId, requestId: s.addReq }).then(function (r) {
+      if (S !== s) return;
+      s.addReq = null;
+      if (typeof r.remainingSeconds === "number") s.remaining = r.remainingSeconds;
+      if (s.remaining > 0 && s.items.length === 0 && !s.loading) reload(); else renderPick();
+    }, function () {
+      if (S !== s) return;
+      showErr("pickErr", sendAdd); // やりなおしは同じ requestId
+    });
+  }
+
+  // ================= ③ みる =================
+  var ytReady = new Promise(function (resolve) { window.onYouTubeIframeAPIReady = resolve; });
+  (function () {
+    var s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(s);
+  })();
+
+  function openWatch(it) {
+    if (S.remaining <= 0) return;
+    var sess = {
+      item: it, videoId: it.videoId, childId: S.childId, recordId: uuid(),
+      acc: 0, lastPos: null, position: it.resume ? Number(it.resume.position) || 0 : 0,
+      startRemaining: S.remaining, mismatch: 0, started: false, lastSaveAt: 0,
+      timeUp: false, keepGoing: false, ended: false, closed: false, player: null, tick: null
+    };
+    W = sess;
+    $("watchTitle").textContent = it.title;
+    $("timeUpBox").hidden = true;
+    $("watchErr").hidden = true;
+    $("nextBtn").hidden = false;
+    var box = $("playerBox"); box.innerHTML = "";
+    var holder = document.createElement("div"); box.appendChild(holder);
+    renderWatchLeft(sess);
+    show("s-watch");
+
+    ytReady.then(function () {
+      if (W !== sess || sess.closed) return;
+      var vars = { playsinline: 1, rel: 0, autoplay: 0, controls: 1, fs: 0, iv_load_policy: 3, origin: location.origin };
+      if (it.resume && sess.position > 0) vars.start = Math.floor(sess.position);
+      sess.player = new YT.Player(holder, {
+        width: "100%", height: "100%", videoId: it.videoId, playerVars: vars,
+        events: {
+          onStateChange: function (e) { onState(sess, e.data); },
+          onError: function () { if (W === sess) $("watchErr").hidden = false; }
+        }
+      });
+    });
+    sess.tick = setInterval(function () { tick(sess); }, 500);
+  }
+
+  function leftOf(sess) { return sess.startRemaining - sess.acc; }
+
+  function renderWatchLeft(sess) {
+    var l = Math.max(0, Math.ceil(leftOf(sess)));
+    var m = Math.floor(l / 60), s = l % 60;
+    $("watchLeft").textContent = "のこり " + m + "ふん " + s + "びょう";
+  }
+
+  // 0.5秒ごとに、本編の再生位置が進んだ分だけを数える(test/index.html と同じ方式)
+  function tick(sess) {
+    if (sess.closed) return;
+    var p = sess.player;
+    if (!p || !p.getPlayerState) { renderWatchLeft(sess); return; }
+    var st = p.getPlayerState();
+    var pos = p.getCurrentTime ? (p.getCurrentTime() || 0) : 0;
+    if (st === 1) {
+      if (sess.lastPos !== null) {
+        var d = pos - sess.lastPos;
+        if (d > 0 && d <= 1.5) sess.acc += d;   // 先送り・巻き戻し・広告は数えない
+      }
+      sess.lastPos = pos;
+      sess.position = pos;
+
+      // ちがう動画が2回つづけて見えたら止めてもどる
+      var vd = p.getVideoData ? p.getVideoData() : null;
+      var vid = vd && vd.video_id;
+      if (vid && vid !== sess.videoId) {
+        sess.mismatch++;
+        if (sess.mismatch >= 2) { try { p.stopVideo(); } catch (e) {} leave(sess, "えらぶ"); return; }
+      } else {
+        sess.mismatch = 0;
+      }
+
+      if (!sess.started && sess.acc > 0) {
+        sess.started = true; sess.lastSaveAt = Date.now(); requestSave(sess);
+      } else if (sess.started && Date.now() - sess.lastSaveAt >= SAVE_EVERY_MS) {
+        sess.lastSaveAt = Date.now(); requestSave(sess);
+      }
+
+      if (!sess.keepGoing && leftOf(sess) <= 0) {
+        if (!sess.timeUp) { sess.timeUp = true; $("timeUpBox").hidden = false; $("nextBtn").hidden = true; }
+        try { p.pauseVideo(); } catch (e) {}
+      }
+    } else {
+      sess.lastPos = null;
+      if (st === 2) sess.position = pos;
+    }
+    renderWatchLeft(sess);
+  }
+
+  function onState(sess, st) {
+    if (sess.closed) return;
+    if (st === 2) {
+      try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {}
+      if (sess.started) { sess.lastSaveAt = Date.now(); requestSave(sess); }
+    } else if (st === 0) {
+      sess.ended = true;
+      try { sess.position = sess.player.getDuration() || sess.position; } catch (e) {}
+      leave(sess, "つぎをえらぶ");
+    }
+  }
+
+  // 保存して、プレーヤーをこわして、②にもどる
+  function leave(sess, title) {
+    if (sess.closed) return;
+    sess.closed = true;
+    clearInterval(sess.tick);
+    if (sess.player && !sess.ended) { try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {} }
+    if (sess.started || sess.ended) requestSave(sess);
+    try { if (sess.player && sess.player.destroy) sess.player.destroy(); } catch (e) {}
+    $("playerBox").innerHTML = "";
+    if (W === sess) W = null;
+
+    var it = sess.item;
+    if (sess.ended) { it.watched = true; it.resume = null; }
+    else if (sess.started) {
+      var dur = Number(it.seconds) || 0;
+      it.resume = { position: Math.floor(sess.position), left: Math.max(0, dur - Math.floor(sess.position)) };
+    }
+    if (it._mark) it._mark();
+
+    if (S && S.childId === sess.childId) {
+      S.remaining = Math.min(S.remaining, Math.floor(leftOf(sess)));
+      openPick(title);
+    }
+  }
+
+  $("nextBtn").onclick = function () { if (W) leave(W, "つぎをえらぶ"); };
+  $("nextBtn2").onclick = function () { if (W) leave(W, "つぎをえらぶ"); };
+  $("keepBtn").onclick = function () {
+    var sess = W; if (!sess) return;
+    sess.keepGoing = true;
+    $("timeUpBox").hidden = true; $("nextBtn").hidden = false;
+    try { sess.player.playVideo(); } catch (e) {}
+  };
+
+  // ---- saveWatch: 同時に1つだけ。失敗したら次の機会に最新の値で ----
+  var saveQ = [], sending = false;
+  function snapshot(sess) {
+    return {
+      childId: sess.childId, recordId: sess.recordId, videoId: sess.videoId,
+      watchedSeconds: Math.round(sess.acc), position: Math.floor(sess.position || 0), ended: !!sess.ended
+    };
+  }
+  function requestSave(sess) {
+    if (saveQ.indexOf(sess) < 0) saveQ.push(sess);
+    else if (sending && saveQ[0] === sess) sess.again = true;
+    pump();
+  }
+  function pump() {
+    if (sending || !saveQ.length) return;
+    var sess = saveQ[0];
+    sess.again = false;
+    sending = true;
+    api("saveWatch", snapshot(sess)).then(function (r) {
+      sending = false;
+      if (!sess.again) saveQ.shift();
+      if (typeof r.remainingSeconds === "number" && S && S.childId === sess.childId && !W) {
+        S.remaining = r.remainingSeconds;
+        renderPick();
+      }
+      pump();
+    }, function () {
+      sending = false; // 列にのこしておき、次に保存するときに最新の値で送る
+    });
+  }
+  function flushOnHide() {
+    var list = saveQ.slice();
+    if (W && W.started && list.indexOf(W) < 0) list.push(W);
+    list.forEach(function (sess) {
+      if (sess === W && sess.player) { try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {} }
+      api("saveWatch", snapshot(sess), { keepalive: true }).catch(function () {});
+    });
+  }
+  window.addEventListener("pagehide", flushOnHide);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden" && W && W.started) requestSave(W);
+  });
+
+  // ---- はじめ ----
+  if (!GAS || !PASS) { show("s-nosetup"); return; }
+  goWho();
+})();
+</script>
+</body>
+</html>
