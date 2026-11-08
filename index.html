@@ -8,6 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ごほうびどうが">
 <title>ごほうびどうが</title>
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://i.ytimg.com">
 <style>
   :root {
     --bg:#111; --fg:#f4f4f4; --sub:#b4b4b4; --card:#1f1f1f; --line:#3a3a3a;
@@ -81,20 +83,6 @@
   #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent); }
 
   /* たしかめる */
-  /* まってね・できたよ */
-  .pill { position:fixed; left:50%; transform:translateX(-50%); z-index:30; display:flex; gap:14px; align-items:center;
-          background:var(--accent); color:#111; font-weight:bold; font-size:30px; padding:14px 34px; border-radius:999px;
-          box-shadow:0 6px 20px rgba(0,0,0,.6); pointer-events:none; }
-  #busy { top:18px; }
-  #toast { bottom:28px; background:var(--ok); }
-  .spin { width:28px; height:28px; border:5px solid rgba(0,0,0,.25); border-top-color:#111; border-radius:50%; animation:spin .8s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  button.tapped { opacity:.55; }
-
-  /* はじめの「すきなひと」 */
-  #startMsg { font-size:30px; margin:26px 0 6px; }
-  #favWrap.start #favs button { font-size:34px; min-height:120px; padding:18px 40px; border-radius:22px; }
-
   #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; }
   #confirm .box { background:#222; border-radius:24px; padding:44px 56px; text-align:center; border:3px solid var(--line); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
@@ -153,13 +141,12 @@
         <label class="check"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
       </div>
 
-      <div id="startMsg" hidden>すきなひとを えらぶか、さがしてね</div>
       <div id="favWrap" hidden>
         <div class="favs-label">すきなひと</div>
         <div class="row" id="favs"></div>
       </div>
 
-      <div class="source" id="source">YouTube のどうが</div>
+      <div class="source">YouTube のどうが</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
       <div id="list"></div>
       <div id="emptyMsg" class="msg" hidden>いまのじかんでみられるどうがはないよ。のこったじかんは、つぎにつかえるよ</div>
@@ -186,9 +173,6 @@
     <div id="watchErr" class="msg" hidden>このどうがは みられないよ</div>
   </div>
 </section>
-
-<div id="busy" class="pill" hidden><span class="spin"></span>まってね</div>
-<div id="toast" class="pill" hidden></div>
 
 <!-- じかんをたす? -->
 <div id="confirm" hidden>
@@ -236,45 +220,12 @@
     return h ? h + ":" + (m < 10 ? "0" : "") + m + ":" + ss : m + ":" + ss;
   }
 
-  // ---- 押したことがすぐわかるように ----
-  // iPad の Safari で :active を効かせる
-  document.addEventListener("touchstart", function () {}, { passive: true });
-  var lastTap = null, lastTapAt = 0;
-  document.addEventListener("click", function (e) {
-    var b = e.target.closest ? e.target.closest("button") : null;
-    if (b) { lastTap = b; lastTapAt = Date.now(); }
-  }, true);
-
-  var busyCount = 0, tappedNow = [];
-  function busyOn() {
-    busyCount++;
-    $("busy").hidden = false;
-    if (lastTap && Date.now() - lastTapAt < 500 && document.body.contains(lastTap)) {
-      lastTap.classList.add("tapped"); tappedNow.push(lastTap);
-    }
-  }
-  function busyOff() {
-    busyCount = Math.max(0, busyCount - 1);
-    if (busyCount) return;
-    $("busy").hidden = true;
-    tappedNow.forEach(function (b) { b.classList.remove("tapped"); });
-    tappedNow = [];
-  }
-  var toastTimer;
-  function toast(text) {
-    $("toast").textContent = text; $("toast").hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { $("toast").hidden = true; }, 2500);
-  }
-
   // ---- GAS との通信 ----
   function api(action, data, opts) {
     var body = { pass: PASS, action: action };
     Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
     var init = { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) };
     if (opts && opts.keepalive) { init.keepalive = true; return fetch(GAS, init); }
-    var quiet = !!(opts && opts.quiet);   // 見ている間の保存では「まってね」を出さない
-    if (!quiet) busyOn();
     var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
     if (ctrl) init.signal = ctrl.signal;
     var timer;
@@ -288,10 +239,9 @@
       return j;
     });
     return Promise.race([req, timeout]).then(
-      function (v) { clearTimeout(timer); if (!quiet) busyOff(); return v; },
+      function (v) { clearTimeout(timer); return v; },
       function (e) {
         clearTimeout(timer);
-        if (!quiet) busyOff();
         var code = (e && e.code) ? e.code : "network";
         console.warn("gohoubi: " + action + " " + code); // URL と合言葉は出さない
         throw { code: code };
@@ -372,11 +322,9 @@
     $("hideSeen").checked = S.hideWatched;
     renderFavs();
     show("s-pick");
-    renderPick();   // ひらいただけでは さがさない
+    if (S.remaining > 0 && S.items.length === 0 && !S.loading) reload();
+    else renderPick();
   }
-
-  // なにかを えらんだり さがしたりしているか
-  function isActive() { return !!(S.q || S.channelId || S.popular); }
 
   function renderFavs() {
     var box = $("favs"); box.innerHTML = "";
@@ -405,10 +353,6 @@
     $("more").hidden = S.loading || !S.next;
     $("quotaMsg").hidden = !S.quota;
     $("emptyMsg").hidden = S.loading || S.quota || S.items.length > 0 || !!S.next || !S.loaded;
-    var start = !isActive();
-    $("startMsg").hidden = !start;
-    $("favWrap").classList.toggle("start", start);
-    $("source").hidden = start;
   }
 
   function buildQuery(cursor) {
@@ -424,12 +368,6 @@
   function reload() {
     S.items = []; S.seen = {}; S.next = null; S.quota = false; S.loaded = false;
     $("list").innerHTML = "";
-    $("pickErr").hidden = true;
-    if (!isActive()) {      // はじめの画面にもどる(さがさない)
-      gen++; S.loading = false;
-      renderPick();
-      return;
-    }
     load(false);
   }
 
@@ -531,7 +469,6 @@
       if (S !== s) return;
       s.addReq = null;
       if (typeof r.remainingSeconds === "number") s.remaining = r.remainingSeconds;
-      toast("30ぷん たしたよ");
       if (s.remaining > 0 && s.items.length === 0 && !s.loading) reload(); else renderPick();
     }, function () {
       if (S !== s) return;
@@ -560,24 +497,44 @@
     $("timeUpBox").hidden = true;
     $("watchErr").hidden = true;
     $("nextBtn").hidden = false;
-    var box = $("playerBox"); box.innerHTML = "";
-    var holder = document.createElement("div"); box.appendChild(holder);
     renderWatchLeft(sess);
     show("s-watch");
+    createPlayer(sess, it.resume ? sess.position : 0);
+    sess.tick = setInterval(function () { tick(sess); }, 500);
+  }
 
+  function createPlayer(sess, startAt) {
+    var box = $("playerBox"); box.innerHTML = "";
+    var holder = document.createElement("div"); box.appendChild(holder);
     ytReady.then(function () {
       if (W !== sess || sess.closed) return;
       var vars = { playsinline: 1, rel: 0, autoplay: 0, controls: 1, fs: 0, iv_load_policy: 3, origin: location.origin };
-      if (it.resume && sess.position > 0) vars.start = Math.floor(sess.position);
+      if (startAt > 0) vars.start = Math.floor(startAt);
       sess.player = new YT.Player(holder, {
-        width: "100%", height: "100%", videoId: it.videoId, playerVars: vars,
+        width: "100%", height: "100%", videoId: sess.videoId, playerVars: vars,
         events: {
           onStateChange: function (e) { onState(sess, e.data); },
           onError: function () { if (W === sess) $("watchErr").hidden = false; }
         }
       });
     });
-    sess.tick = setInterval(function () { tick(sess); }, 500);
+  }
+
+  function removePlayer(sess) {
+    try { if (sess.player && sess.player.destroy) sess.player.destroy(); } catch (e) {}
+    sess.player = null;
+    $("playerBox").innerHTML = "";
+  }
+
+  // 残りが0になったら1回だけ止める。プレーヤーを消して全画面を閉じ、案内を出す
+  function timeUp(sess) {
+    sess.timeUp = true;
+    sess.lastSaveAt = Date.now();
+    requestSave(sess);
+    removePlayer(sess);
+    $("timeUpBox").hidden = false;
+    $("nextBtn").hidden = true;
+    renderWatchLeft(sess);
   }
 
   function leftOf(sess) { return sess.startRemaining - sess.acc; }
@@ -619,10 +576,7 @@
         sess.lastSaveAt = Date.now(); requestSave(sess);
       }
 
-      if (!sess.keepGoing && leftOf(sess) <= 0) {
-        if (!sess.timeUp) { sess.timeUp = true; $("timeUpBox").hidden = false; $("nextBtn").hidden = true; }
-        try { p.pauseVideo(); } catch (e) {}
-      }
+      if (!sess.keepGoing && leftOf(sess) <= 0) { timeUp(sess); return; }
     } else {
       sess.lastPos = null;
       if (st === 2) sess.position = pos;
@@ -649,8 +603,7 @@
     clearInterval(sess.tick);
     if (sess.player && !sess.ended) { try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {} }
     if (sess.started || sess.ended) requestSave(sess);
-    try { if (sess.player && sess.player.destroy) sess.player.destroy(); } catch (e) {}
-    $("playerBox").innerHTML = "";
+    removePlayer(sess);
     if (W === sess) W = null;
 
     var it = sess.item;
@@ -672,8 +625,9 @@
   $("keepBtn").onclick = function () {
     var sess = W; if (!sess) return;
     sess.keepGoing = true;
+    sess.lastPos = null;
     $("timeUpBox").hidden = true; $("nextBtn").hidden = false;
-    try { sess.player.playVideo(); } catch (e) {}
+    createPlayer(sess, sess.position);
   };
 
   // ---- saveWatch: 同時に1つだけ。失敗したら次の機会に最新の値で ----
@@ -694,7 +648,7 @@
     var sess = saveQ[0];
     sess.again = false;
     sending = true;
-    api("saveWatch", snapshot(sess), { quiet: true }).then(function (r) {
+    api("saveWatch", snapshot(sess)).then(function (r) {
       sending = false;
       if (!sess.again) saveQ.shift();
       if (typeof r.remainingSeconds === "number" && S && S.childId === sess.childId && !W) {
