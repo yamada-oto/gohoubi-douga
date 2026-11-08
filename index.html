@@ -41,26 +41,43 @@
   .row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
 
   /* ① */
-  #s-who h1 { font-size:48px; margin:40px 0 36px; text-align:center; color:var(--accent-deep); }
+  #s-who .screen { min-height:100vh; display:flex; flex-direction:column; justify-content:center; }
+  #s-who h1 { font-size:48px; margin:0 0 36px; text-align:center; color:var(--accent-deep); }
   #kids { display:flex; flex-wrap:wrap; gap:28px; justify-content:center; }
-  #kids button { font-size:44px; min-width:300px; min-height:150px; border-radius:24px; }
-  #toParent { display:block; margin:80px auto 0; width:max-content; font-size:20px; color:var(--sub); }
+  #kids button { font-size:44px; min-width:300px; min-height:150px; border-radius:24px; padding:28px 40px;
+                 display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .kid-icon { width:104px; height:104px; border-radius:50%; background:#ffedd5; color:var(--accent); display:flex; align-items:center; justify-content:center; }
+  .kid-icon svg { width:60px; height:60px; }
+  #toParent { display:block; margin:60px auto 0; width:max-content; font-size:20px; color:var(--sub); }
 
   /* ② */
-  .top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
-         position:sticky; top:0; z-index:5; background:var(--bg); padding:12px 0; border-bottom:2px solid var(--line); }
-  .left-box .big-left { font-family:var(--brand); font-size:42px; font-weight:bold; color:var(--accent-deep); }
-  .left-box .note { font-size:22px; color:var(--sub); }
-  .who-name { font-size:26px; color:var(--sub); }
+  #appHeader { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:16px; padding:10px 28px; background:var(--accent-deep); }
+  .hdr-btn { width:64px; height:64px; min-height:64px; padding:0; border-radius:50%; border:0; background:#fff; color:var(--accent-deep);
+             display:flex; align-items:center; justify-content:center; flex:none; box-shadow:none; }
+  .hdr-btn svg { width:36px; height:36px; }
+  .hdr-who { display:flex; align-items:center; gap:10px; min-width:0; }
+  .hdr-avatar { width:48px; height:48px; border-radius:50%; background:#fed7aa; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; flex:none; }
+  .hdr-avatar svg { width:30px; height:30px; }
+  #whoName { font-size:32px; font-weight:900; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hdr-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
+  #hdrTime { font-family:var(--brand); font-size:46px; font-weight:bold; color:#fff; font-variant-numeric:tabular-nums; }
+  .note { font-size:22px; color:var(--sub); margin-top:4px; }
   #pickTitle { font-size:36px; margin:18px 0 8px; color:var(--accent-deep); }
-  .search { display:flex; gap:12px; flex:1 1 520px; }
+  .find { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
+  .find-rows { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .search { display:flex; gap:12px; }
   .search input { flex:1; min-width:0; min-height:76px; padding:10px 22px; border-radius:24px; border:3px solid var(--line);
                   background:#fff; color:var(--fg); font-size:28px; }
-  .check { display:inline-flex; align-items:center; gap:12px; min-height:76px; padding:8px 22px; border-radius:24px;
-           border:3px solid #fff; background:#fff; box-shadow:var(--shadow); font-weight:bold; cursor:pointer; }
-  .check input { width:36px; height:36px; margin:0; accent-color:var(--accent-deep); }
-  .favs-label { font-size:22px; color:var(--sub); margin:18px 0 8px; }
-  #favs button { font-size:24px; }
+  .who-wrap { position:relative; flex:1; display:flex; gap:8px; min-width:0; }
+  #favToggle { flex:none; width:76px; padding:0; font-size:26px; color:var(--accent-deep); }
+  #favMenu { position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:4; background:#fff; border-radius:24px; padding:10px;
+             box-shadow:0 12px 28px rgba(0,0,0,.25); display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto; }
+  #favMenu button { box-shadow:none; text-align:left; border-color:#fff; background:#fff; flex:none; }
+  #favMenu button:active { background:#ffedd5; }
+  #bothBtn { padding:12px 22px; line-height:1.25; }
+  .checks { display:flex; flex-wrap:wrap; gap:8px 36px; margin-top:12px; }
+  .chk { display:inline-flex; align-items:center; gap:12px; min-height:60px; font-weight:normal; cursor:pointer; }
+  .chk input { width:34px; height:34px; margin:0; accent-color:var(--accent-deep); flex:none; }
   .source { font-size:22px; color:var(--sub); margin:22px 0 10px; }
   #list { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:22px; }
   .card { display:flex; flex-direction:column; align-items:stretch; text-align:left; padding:0; overflow:hidden;
@@ -76,32 +93,33 @@
   .tag.resume { background:#ffedd5; color:#c2410c; font-weight:bold; }
   .tag.seen { background:#dcfce7; color:#15803d; font-weight:bold; }
   #more { display:block; margin:28px auto 0; }
-  #loading { font-size:30px; text-align:center; padding:30px; color:var(--accent-deep); }
 
   /* ③ */
   #s-watch .screen { padding-top:12px; }
-  #playerBox { width:min(100%, calc((100vh - 230px) * 16 / 9)); aspect-ratio:16/9; margin:0 auto; background:#000; }
+  #playerBox:empty { display:none; }
+  #playerBox { width:min(100%, calc((100vh - 330px) * 16 / 9)); aspect-ratio:16/9; margin:0 auto; background:#000; }
   #playerBox iframe { display:block; width:100%; height:100%; border:0; }
   #watchTitle { font-size:22px; color:var(--sub); text-align:center; margin:10px 0 0; }
   .under { display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:center; margin-top:14px; }
-  #watchLeft { font-family:var(--brand); font-size:38px; font-weight:bold; min-width:340px; text-align:center; color:var(--accent-deep); }
-  #timeUpBox { display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:center; }
+  .under > button { min-width:320px; }
+  button.gray { background:#9ca3af; border-color:#9ca3af; color:#fff; box-shadow:none; }
+  button:disabled { opacity:.5; }
+  #timeUpBox { display:flex; flex-direction:column; gap:14px; align-items:center; margin-top:28px; }
+  #timeUpBox .tu-note { font-size:28px; }
   #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent-deep); }
 
   /* たしかめる */
-  /* まってね・できたよ */
+  /* よみこみ中・できたよ */
   .pill { position:fixed; left:50%; transform:translateX(-50%); z-index:30; display:flex; gap:14px; align-items:center;
           background:var(--accent-deep); color:#fff; font-weight:bold; font-size:30px; padding:14px 34px; border-radius:999px;
           border:2px solid #fff; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none; }
-  #busy { top:18px; }
+  #busy { top:50%; transform:translate(-50%,-50%); }
   #toast { bottom:28px; background:var(--ok); }
   .spin { width:28px; height:28px; border:5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   button.tapped { opacity:.55; }
 
-  /* はじめの「すきなひと」 */
   #startMsg { font-size:30px; margin:26px 0 6px; }
-  #favWrap.start #favs button { font-size:34px; min-height:120px; padding:18px 40px; border-radius:22px; }
 
   #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
   #confirm .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
@@ -109,6 +127,15 @@
 </style>
 </head>
 <body>
+
+<header id="appHeader" hidden>
+  <button class="hdr-btn" id="hdrBack" aria-label="もどる"></button>
+  <div class="hdr-who"><span class="hdr-avatar" id="hdrAvatar"></span><span id="whoName"></span></div>
+  <div class="hdr-right">
+    <span id="hdrTime">00:00</span>
+    <button class="hdr-btn" id="addBtn" aria-label="じかんをたす"></button>
+  </div>
+</header>
 
 <!-- せっていがない -->
 <section id="s-nosetup" hidden>
@@ -120,7 +147,6 @@
   <div class="screen">
     <h1>だれがみる?</h1>
     <div id="kids"></div>
-    <div id="whoLoading" class="msg" hidden>よみこんでいるよ</div>
     <div id="whoErr" class="msg" hidden>うまくいかなかったよ<div class="row"><button class="big primary" data-retry>もういちど</button></div></div>
     <a id="toParent" href="about.html">おうちのかたへ</a>
   </div>
@@ -129,19 +155,8 @@
 <!-- ② えらぶ -->
 <section id="s-pick" hidden>
   <div class="screen">
-    <div class="top">
-      <div class="left-box">
-        <div class="big-left" id="pickLeft">のこり -ふん</div>
-        <div class="note">のこったじかんは、つぎにつかえるよ</div>
-      </div>
-      <div class="row">
-        <span class="who-name" id="whoName"></span>
-        <button id="addBtn">じかんをたす</button>
-        <button id="backNames">なまえにもどる</button>
-      </div>
-    </div>
-
     <h2 id="pickTitle">えらぶ</h2>
+    <div class="note" id="carryNote" style="margin-bottom:14px">のこったじかんは、つぎにつかえるよ</div>
 
     <div id="pickErr" class="msg" hidden>うまくいかなかったよ<div class="row"><button class="big primary" data-retry>もういちど</button></div></div>
 
@@ -151,27 +166,35 @@
     </div>
 
     <div id="pickMain">
-      <div class="row">
-        <form class="search" id="searchForm" autocomplete="off">
-          <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="さがす">
-          <button type="submit">さがす</button>
-        </form>
-        <button id="popBtn" aria-pressed="false">おもしろい</button>
-        <button id="safeBtn" aria-pressed="false">こわくない</button>
-        <label class="check"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
+      <div class="find">
+        <div class="find-rows">
+          <form class="search" id="searchForm" autocomplete="off">
+            <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="なにをみる">
+            <button type="submit">さがす</button>
+          </form>
+          <form class="search" id="whoForm" autocomplete="off">
+            <div class="who-wrap">
+              <input id="who" type="search" placeholder="だれの?" enterkeyhint="search" aria-label="だれの">
+              <button type="button" id="favToggle" aria-label="すきなひとをえらぶ" aria-expanded="false" hidden>▼</button>
+              <div id="favMenu" hidden></div>
+            </div>
+            <button type="submit">さがす</button>
+          </form>
+        </div>
+        <button id="bothBtn" class="primary" type="button">あわせて<br>さがす</button>
       </div>
-
-      <div id="startMsg" hidden>すきなひとを えらぶか、さがしてね</div>
-      <div id="favWrap" hidden>
-        <div class="favs-label">すきなひと</div>
-        <div class="row" id="favs"></div>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="popChk">にんき</label>
+        <label class="chk"><input type="checkbox" id="safeChk">こわくない</label>
+        <label class="chk"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
       </div>
+      <div id="startMsg" class="note" hidden>さがしたいものを いれて「さがす」をおしてね</div>
 
       <div class="source" id="source">YouTube のどうが</div>
+      <div id="notFoundMsg" class="msg" hidden>そのひとは みつからなかったよ</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
       <div id="list"></div>
       <div id="emptyMsg" class="msg" hidden>いまのじかんでみられるどうがはないよ。のこったじかんは、つぎにつかえるよ</div>
-      <div id="loading" hidden>さがしているよ</div>
       <button id="more" class="big" hidden>ほかのどうがをみる</button>
     </div>
   </div>
@@ -183,19 +206,19 @@
     <div id="playerBox"></div>
     <div id="watchTitle"></div>
     <div class="under">
-      <div id="watchLeft">のこり</div>
-      <button class="big primary" id="nextBtn">つぎをえらぶ</button>
-      <div id="timeUpBox" hidden>
-        <span class="tu-text">じかんになったよ</span>
-        <button class="big" id="keepBtn">さいごまでみる</button>
-        <button class="big primary" id="nextBtn2">つぎをえらぶ</button>
-      </div>
+      <button class="big primary" id="startBtn">はじめる</button>
+      <button class="big gray" id="nextBtn">ほかをさがす</button>
+    </div>
+    <div id="timeUpBox" hidden>
+      <span class="tu-text">じかんになったよ</span>
+      <span class="tu-note">つづきをみると、つぎのじかんが へるよ</span>
+      <button class="big primary" id="keepBtn">つづきをみる</button>
     </div>
     <div id="watchErr" class="msg" hidden>このどうがは みられないよ</div>
   </div>
 </section>
 
-<div id="busy" class="pill" hidden><span class="spin"></span>まってね</div>
+<div id="busy" class="pill" hidden><span class="spin"></span>よみこみ中…</div>
 <div id="toast" class="pill" hidden></div>
 
 <!-- じかんをたす? -->
@@ -225,6 +248,7 @@
 
   function show(name) {
     ["s-nosetup", "s-who", "s-pick", "s-watch"].forEach(function (id) { $(id).hidden = (id !== name); });
+    $("appHeader").hidden = (name !== "s-pick" && name !== "s-watch");
     window.scrollTo(0, 0);
   }
 
@@ -236,7 +260,29 @@
     return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
   }
 
+  // アイコンの図形は Lucide(ISC License)
+  function svg(body) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + "</svg>";
+  }
+  var ICONS = {
+    carrot: svg('<path d="M15 16a1 1 0 0 0-7-7q-4 4-5.987 12.385a.5.5 0 0 0 .602.602Q11 20 15 16l-3-3"/><path d="M15 9q4 4 7 0-3-4-7 0 4-4 0-7-4 3 0 7"/><path d="m8 15-2.58-2.58"/>'),
+    image: svg('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'),
+    plus: svg('<path d="M5 12h14"/><path d="M12 5v14"/>'),
+    back: svg('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>')
+  };
+  var KID_ICONS = { c1: "carrot", c2: "image" };
+  function kidIcon(childId) { return ICONS[KID_ICONS[childId]] || ""; }
+  $("hdrBack").innerHTML = ICONS.back;
+  $("addBtn").innerHTML = ICONS.plus;
+
   function minsUp(sec) { return Math.max(0, Math.ceil(sec / 60)); }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  // 残り時間は 分:秒。超えたら -02:05 のように出す
+  function fmtLeft(sec) {
+    var l = Math.ceil(sec);
+    var a = Math.abs(l);
+    return (l < 0 ? "-" : "") + pad2(Math.floor(a / 60)) + ":" + pad2(a % 60);
+  }
   function fmtLen(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
     var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -281,7 +327,7 @@
     Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
     var init = { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) };
     if (opts && opts.keepalive) { init.keepalive = true; return fetch(GAS, init); }
-    var quiet = !!(opts && opts.quiet);   // 見ている間の保存では「まってね」を出さない
+    var quiet = !!(opts && opts.quiet);   // 見ている間の保存では「よみこみ中」を出さない
     if (!quiet) busyOn();
     var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
     if (ctrl) init.signal = ctrl.signal;
@@ -323,13 +369,10 @@
   var kids = null;
   function loadKids() {
     $("whoErr").hidden = true;
-    $("whoLoading").hidden = false;
     api("children").then(function (r) {
-      $("whoLoading").hidden = true;
       kids = r.children || [];
       renderKids();
     }, function () {
-      $("whoLoading").hidden = true;
       showErr("whoErr", loadKids);
     });
   }
@@ -338,7 +381,12 @@
     kids.forEach(function (k) {
       var b = document.createElement("button");
       b.className = "primary";
-      b.textContent = k.name;
+      var icon = kidIcon(k.childId);
+      if (icon) {
+        var c = document.createElement("span"); c.className = "kid-icon"; c.innerHTML = icon;
+        b.appendChild(c);
+      }
+      b.appendChild(document.createTextNode(k.name));
       b.onclick = function () { pickChild(k); };
       box.appendChild(b);
     });
@@ -353,19 +401,16 @@
 
   function pickChild(k) {
     $("whoErr").hidden = true;
-    $("whoLoading").hidden = false;
     api("selectChild", { childId: k.childId }).then(function (r) {
-      $("whoLoading").hidden = true;
       S = {
         childId: k.childId, name: k.name,
         remaining: Number(r.remainingSeconds) || 0,
         favorites: r.favorites || [],
-        q: "", channelId: null, popular: false, notScary: false, hideWatched: false,
-        items: [], seen: {}, next: null, quota: false, loading: false, addReq: null
+        q: "", who: "", popular: false, popularChecked: false, notScary: false, hideWatched: false,
+        items: [], seen: {}, next: null, quota: false, notFound: false, loading: false, addReq: null
       };
       openPick("えらぶ");
     }, function () {
-      $("whoLoading").hidden = true;
       showErr("whoErr", function () { pickChild(k); });
     });
   }
@@ -374,63 +419,70 @@
   function openPick(title) {
     $("pickTitle").textContent = title;
     $("whoName").textContent = S.name;
+    $("hdrAvatar").innerHTML = kidIcon(S.childId);
+    $("hdrAvatar").hidden = !kidIcon(S.childId);
     $("q").value = S.q;
-    $("popBtn").setAttribute("aria-pressed", String(S.popular));
-    $("safeBtn").setAttribute("aria-pressed", String(S.notScary));
+    $("who").value = S.who;
+    $("popChk").checked = S.popularChecked;
+    $("safeChk").checked = S.notScary;
     $("hideSeen").checked = S.hideWatched;
     renderFavs();
     show("s-pick");
     renderPick();   // ひらいただけでは さがさない
   }
 
-  // なにかを えらんだり さがしたりしているか
-  function isActive() { return !!(S.q || S.channelId || S.popular); }
+  // なにかを さがしているか
+  function isActive() { return !!(S.q || S.who || S.popular); }
 
+  // すきなひと: ▼ で選ぶと「だれの?」に入る(さがすのは「さがす」を押したとき)
+  function closeFavs() { $("favMenu").hidden = true; $("favToggle").setAttribute("aria-expanded", "false"); }
   function renderFavs() {
-    var box = $("favs"); box.innerHTML = "";
-    $("favWrap").hidden = !S.favorites.length;
+    var box = $("favMenu"); box.innerHTML = "";
+    closeFavs();
+    $("favToggle").hidden = !S.favorites.length;
     S.favorites.forEach(function (f) {
       var b = document.createElement("button");
+      b.type = "button";
       b.textContent = f.name;
-      b.setAttribute("aria-pressed", String(S.channelId === f.channelId));
-      b.onclick = function () {
-        S.channelId = (S.channelId === f.channelId) ? null : f.channelId;
-        if (S.channelId) { S.q = ""; $("q").value = ""; }
-        renderFavs();
-        reload();
-      };
+      b.onclick = function () { $("who").value = f.name; closeFavs(); };
       box.appendChild(b);
     });
   }
+  $("favToggle").onclick = function (e) {
+    e.stopPropagation();
+    var open = $("favMenu").hidden;
+    $("favMenu").hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+  };
+  document.addEventListener("click", function (e) {
+    if (!$("favMenu").hidden && !$("favMenu").contains(e.target)) closeFavs();
+  });
 
   function renderPick() {
     if (!S) return;
-    $("pickLeft").textContent = "のこり " + minsUp(S.remaining) + "ふん";
+    if (!W) $("hdrTime").textContent = fmtLeft(S.remaining);
     var over = S.remaining <= 0;
     $("timeUpPick").hidden = !over;
     $("pickMain").hidden = over;
-    $("loading").hidden = !S.loading;
     $("more").hidden = S.loading || !S.next;
     $("quotaMsg").hidden = !S.quota;
-    $("emptyMsg").hidden = S.loading || S.quota || S.items.length > 0 || !!S.next || !S.loaded;
+    $("notFoundMsg").hidden = !S.notFound;
+    $("emptyMsg").hidden = S.loading || S.quota || S.notFound || S.items.length > 0 || !!S.next || !S.loaded;
     var start = !isActive();
     $("startMsg").hidden = !start;
-    $("favWrap").classList.toggle("start", start);
     $("source").hidden = start;
   }
 
   function buildQuery(cursor) {
     var q = { childId: S.childId, popular: S.popular, notScary: S.notScary, hideWatched: S.hideWatched, cursor: cursor || null };
-    if (S.q) { q.mode = "search"; q.q = S.q; if (S.channelId) q.channelId = S.channelId; }
-    else if (S.channelId) { q.mode = "channel"; q.channelId = S.channelId; }
-    else if (S.popular) { q.mode = "search"; q.q = ""; }
-    else { q.mode = "home"; }
+    if (S.who) { q.mode = "person"; q.who = S.who; q.q = S.q; }
+    else { q.mode = "search"; q.q = S.q; }
     return q;
   }
 
   // 条件が変わった: cursor を消して読みなおす
   function reload() {
-    S.items = []; S.seen = {}; S.next = null; S.quota = false; S.loaded = false;
+    S.items = []; S.seen = {}; S.next = null; S.quota = false; S.notFound = false; S.loaded = false;
     $("list").innerHTML = "";
     $("pickErr").hidden = true;
     if (!isActive()) {      // はじめの画面にもどる(さがさない)
@@ -452,6 +504,7 @@
         if (my !== gen || !S) return;
         if (typeof r.remainingSeconds === "number") S.remaining = r.remainingSeconds;
         if (r.quota === true) S.quota = true;
+        if (r.notFound === true) S.notFound = true;
         var added = 0;
         (r.items || []).forEach(function (it) {
           if (!it || !it.videoId || S.seen[it.videoId]) return;
@@ -503,24 +556,26 @@
     return b;
   }
 
-  $("searchForm").onsubmit = function (e) {
-    e.preventDefault();
-    var v = $("q").value.trim();
-    $("q").blur();
-    if (v === S.q) { if (!v) return; }
-    S.q = v;
-    if (v && S.channelId) { S.channelId = null; renderFavs(); }
+  // kind: word=なにを / who=だれの / both=あわせて。にんきは さがすときに読む
+  function runSearch(kind) {
+    var q = $("q").value.trim(), who = $("who").value.trim();
+    if (kind === "word") who = "";
+    if (kind === "who") q = "";
+    $("q").blur(); $("who").blur();
+    closeFavs();
+    S.q = q; S.who = who; S.popular = S.popularChecked;
     reload();
-  };
-  $("popBtn").onclick = function () {
-    S.popular = !S.popular; this.setAttribute("aria-pressed", String(S.popular)); reload();
-  };
-  $("safeBtn").onclick = function () {
-    S.notScary = !S.notScary; this.setAttribute("aria-pressed", String(S.notScary)); reload();
-  };
+  }
+  $("searchForm").onsubmit = function (e) { e.preventDefault(); runSearch("word"); };
+  $("whoForm").onsubmit = function (e) { e.preventDefault(); runSearch("who"); };
+  $("bothBtn").onclick = function () { runSearch("both"); };
+  $("popChk").onchange = function () { S.popularChecked = this.checked; };
+  $("safeChk").onchange = function () { S.notScary = this.checked; reload(); };
   $("hideSeen").onchange = function () { S.hideWatched = this.checked; reload(); };
   $("more").onclick = function () { if (S.next) load(true); };
-  $("backNames").onclick = goWho;
+  $("hdrBack").onclick = function () {
+    if (W) leave(W, "つぎをえらぶ"); else goWho();
+  };
 
   // じかんをたす
   function askAdd() { $("confirm").hidden = false; }
@@ -540,9 +595,11 @@
       s.addReq = null;
       if (typeof r.remainingSeconds === "number") s.remaining = r.remainingSeconds;
       toast("30ぷん たしたよ");
+      if (W) addedWhileWatching(W);
       if (s.remaining > 0 && s.items.length === 0 && !s.loading) reload(); else renderPick();
     }, function () {
       if (S !== s) return;
+      if (W) { toast("うまくいかなかったよ"); return; }
       showErr("pickErr", sendAdd); // やりなおしは同じ requestId
     });
   }
@@ -565,16 +622,49 @@
     };
     W = sess;
     $("watchTitle").textContent = it.title;
-    $("timeUpBox").hidden = true;
+    showPlayButtons();
     $("watchErr").hidden = true;
-    $("nextBtn").hidden = false;
     renderWatchLeft(sess);
     show("s-watch");
     createPlayer(sess, it.resume ? sess.position : 0);
     sess.tick = setInterval(function () { tick(sess); }, 500);
   }
 
+  function showPlayButtons() {
+    $("timeUpBox").hidden = true;
+    $("startBtn").hidden = false;
+    $("nextBtn").hidden = false;
+  }
+
+  // 見ている間に時間を足したとき
+  function addedWhileWatching(sess) {
+    sess.startRemaining += 1800;
+    if (leftOf(sess) > 0) {
+      sess.keepGoing = false;
+      if (sess.timeUp) {
+        sess.timeUp = false;
+        sess.lastPos = null;
+        showPlayButtons();
+        createPlayer(sess, sess.position);
+      }
+    }
+    renderWatchLeft(sess);
+  }
+
+  // 「はじめる」: 動かなければ、プレーヤーの ▶ を案内する
+  $("startBtn").onclick = function () {
+    var sess = W;
+    if (!sess || !sess.player || !sess.player.playVideo) return;
+    try { sess.player.playVideo(); } catch (e) {}
+    setTimeout(function () {
+      if (W !== sess || !sess.player || !sess.player.getPlayerState) return;
+      var st = sess.player.getPlayerState();
+      if (st !== 1 && st !== 3) toast("がめんの ▶ を おしてね");
+    }, 2500);
+  };
+
   function createPlayer(sess, startAt) {
+    $("startBtn").disabled = true;
     var box = $("playerBox"); box.innerHTML = "";
     var holder = document.createElement("div"); box.appendChild(holder);
     ytReady.then(function () {
@@ -584,6 +674,7 @@
       sess.player = new YT.Player(holder, {
         width: "100%", height: "100%", videoId: sess.videoId, playerVars: vars,
         events: {
+          onReady: function () { if (W === sess) $("startBtn").disabled = false; },
           onStateChange: function (e) { onState(sess, e.data); },
           onError: function () { if (W === sess) $("watchErr").hidden = false; }
         }
@@ -604,6 +695,7 @@
     requestSave(sess);
     removePlayer(sess);
     $("timeUpBox").hidden = false;
+    $("startBtn").hidden = true;
     $("nextBtn").hidden = true;
     renderWatchLeft(sess);
   }
@@ -611,9 +703,7 @@
   function leftOf(sess) { return sess.startRemaining - sess.acc; }
 
   function renderWatchLeft(sess) {
-    var l = Math.max(0, Math.ceil(leftOf(sess)));
-    var m = Math.floor(l / 60), s = l % 60;
-    $("watchLeft").textContent = "のこり " + m + "ふん " + s + "びょう";
+    $("hdrTime").textContent = fmtLeft(leftOf(sess));
   }
 
   // 0.5秒ごとに、本編の再生位置が進んだ分だけを数える(test/index.html と同じ方式)
@@ -692,12 +782,12 @@
   }
 
   $("nextBtn").onclick = function () { if (W) leave(W, "つぎをえらぶ"); };
-  $("nextBtn2").onclick = function () { if (W) leave(W, "つぎをえらぶ"); };
   $("keepBtn").onclick = function () {
     var sess = W; if (!sess) return;
     sess.keepGoing = true;
+    sess.timeUp = false;
     sess.lastPos = null;
-    $("timeUpBox").hidden = true; $("nextBtn").hidden = false;
+    showPlayButtons();
     createPlayer(sess, sess.position);
   };
 
