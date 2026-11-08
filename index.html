@@ -8,34 +8,40 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ごほうびどうが">
 <title>ごほうびどうが</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" media="print" onload="this.media='all'">
 <link rel="preconnect" href="https://www.youtube.com">
 <link rel="preconnect" href="https://i.ytimg.com">
 <style>
   :root {
-    --bg:#111; --fg:#f4f4f4; --sub:#b4b4b4; --card:#1f1f1f; --line:#3a3a3a;
-    --accent:#ffcc33; --on:#2f6fdb; --ok:#5fd17a; --ng:#ff7b7b;
+    --bg:#fff7ed; --fg:#374151; --sub:#6b7280; --card:#fff; --line:#fed7aa;
+    --accent:#f97316; --accent-deep:#ea580c; --on:#a855f7; --ok:#16a34a; --ng:#ef4444;
+    --shadow:0 4px 12px rgba(234,88,12,.14);
+    --brand:Comfortaa,"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;
   }
   * { box-sizing:border-box; }
   html, body { margin:0; background:var(--bg); color:var(--fg); }
-  body { font-family:system-ui,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif; font-size:26px; line-height:1.4;
+  body { font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif; font-size:26px; line-height:1.4;
          -webkit-text-size-adjust:100%; }
   [hidden] { display:none !important; }
   button, input { font:inherit; color:inherit; }
-  button { min-height:76px; padding:12px 28px; border-radius:16px; border:3px solid var(--line); background:#2a2a2a;
+  button { min-height:76px; padding:12px 28px; border-radius:24px; border:3px solid #fff; background:#fff; font-weight:bold; box-shadow:var(--shadow);
+           transition:transform .1s;
            cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
-  button:active { transform:scale(.97); }
+  button:active { transform:scale(.95); }
   button:focus-visible, input:focus-visible { outline:5px solid var(--accent); outline-offset:3px; }
   button.big { font-size:32px; min-height:96px; padding:16px 40px; }
-  button.primary { background:var(--accent); color:#111; border-color:var(--accent); font-weight:bold; }
-  button[aria-pressed="true"] { background:var(--on); border-color:#8fb4ff; font-weight:bold; }
+  button.primary { background:var(--accent-deep); color:#fff; border-color:var(--accent-deep); }
+  button[aria-pressed="true"] { background:var(--on); border-color:var(--on); color:#fff; }
   .screen { max-width:1366px; margin:0 auto; padding:20px 28px 40px; }
   .center { text-align:center; }
-  .msg { font-size:30px; padding:28px; background:var(--card); border-radius:18px; text-align:center; margin:20px 0; }
+  .msg { font-size:30px; padding:28px; background:var(--card); border-radius:24px; box-shadow:var(--shadow); text-align:center; margin:20px 0; }
   .msg .row { justify-content:center; margin-top:18px; }
   .row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
 
   /* ① */
-  #s-who h1 { font-size:48px; margin:40px 0 36px; text-align:center; }
+  #s-who h1 { font-size:48px; margin:40px 0 36px; text-align:center; color:var(--accent-deep); }
   #kids { display:flex; flex-wrap:wrap; gap:28px; justify-content:center; }
   #kids button { font-size:44px; min-width:300px; min-height:150px; border-radius:24px; }
   #toParent { display:block; margin:80px auto 0; width:max-content; font-size:20px; color:var(--sub); }
@@ -43,34 +49,34 @@
   /* ② */
   .top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
          position:sticky; top:0; z-index:5; background:var(--bg); padding:12px 0; border-bottom:2px solid var(--line); }
-  .left-box .big-left { font-size:42px; font-weight:bold; }
+  .left-box .big-left { font-family:var(--brand); font-size:42px; font-weight:bold; color:var(--accent-deep); }
   .left-box .note { font-size:22px; color:var(--sub); }
   .who-name { font-size:26px; color:var(--sub); }
-  #pickTitle { font-size:36px; margin:18px 0 8px; }
+  #pickTitle { font-size:36px; margin:18px 0 8px; color:var(--accent-deep); }
   .search { display:flex; gap:12px; flex:1 1 520px; }
-  .search input { flex:1; min-width:0; min-height:76px; padding:10px 18px; border-radius:16px; border:3px solid var(--line);
-                  background:#fff; color:#111; font-size:28px; }
-  .check { display:inline-flex; align-items:center; gap:12px; min-height:76px; padding:8px 22px; border-radius:16px;
-           border:3px solid var(--line); background:#2a2a2a; cursor:pointer; }
-  .check input { width:36px; height:36px; margin:0; }
+  .search input { flex:1; min-width:0; min-height:76px; padding:10px 22px; border-radius:24px; border:3px solid var(--line);
+                  background:#fff; color:var(--fg); font-size:28px; }
+  .check { display:inline-flex; align-items:center; gap:12px; min-height:76px; padding:8px 22px; border-radius:24px;
+           border:3px solid #fff; background:#fff; box-shadow:var(--shadow); font-weight:bold; cursor:pointer; }
+  .check input { width:36px; height:36px; margin:0; accent-color:var(--accent-deep); }
   .favs-label { font-size:22px; color:var(--sub); margin:18px 0 8px; }
   #favs button { font-size:24px; }
   .source { font-size:22px; color:var(--sub); margin:22px 0 10px; }
   #list { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:22px; }
   .card { display:flex; flex-direction:column; align-items:stretch; text-align:left; padding:0; overflow:hidden;
-          min-height:0; border-radius:18px; background:var(--card); border:3px solid var(--line); }
+          min-height:0; border-radius:24px; background:var(--card); border:3px solid #fff; font-weight:normal; }
   .thumb { position:relative; background:#000; }
   .thumb img { display:block; width:100%; height:auto; }
   .card .info { padding:12px 14px 16px; }
   .card .t { font-size:23px; font-weight:bold; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .card .c { font-size:20px; color:var(--sub); margin-top:6px; }
   .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:20px; }
-  .tag { padding:2px 12px; border-radius:999px; background:#333; }
-  .tag.len { background:#333; }
-  .tag.resume { background:#5a4300; color:#ffe08a; }
-  .tag.seen { background:#1f4a2b; color:#bff5c9; }
+  .tag { padding:2px 12px; border-radius:999px; background:#f3f4f6; }
+  .tag.len { background:#f3f4f6; }
+  .tag.resume { background:#ffedd5; color:#c2410c; font-weight:bold; }
+  .tag.seen { background:#dcfce7; color:#15803d; font-weight:bold; }
   #more { display:block; margin:28px auto 0; }
-  #loading { font-size:30px; text-align:center; padding:30px; color:var(--accent); }
+  #loading { font-size:30px; text-align:center; padding:30px; color:var(--accent-deep); }
 
   /* ③ */
   #s-watch .screen { padding-top:12px; }
@@ -78,18 +84,18 @@
   #playerBox iframe { display:block; width:100%; height:100%; border:0; }
   #watchTitle { font-size:22px; color:var(--sub); text-align:center; margin:10px 0 0; }
   .under { display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:center; margin-top:14px; }
-  #watchLeft { font-size:38px; font-weight:bold; min-width:340px; text-align:center; }
+  #watchLeft { font-family:var(--brand); font-size:38px; font-weight:bold; min-width:340px; text-align:center; color:var(--accent-deep); }
   #timeUpBox { display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:center; }
-  #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent); }
+  #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent-deep); }
 
   /* たしかめる */
   /* まってね・できたよ */
   .pill { position:fixed; left:50%; transform:translateX(-50%); z-index:30; display:flex; gap:14px; align-items:center;
-          background:var(--accent); color:#111; font-weight:bold; font-size:30px; padding:14px 34px; border-radius:999px;
-          box-shadow:0 6px 20px rgba(0,0,0,.6); pointer-events:none; }
+          background:var(--accent-deep); color:#fff; font-weight:bold; font-size:30px; padding:14px 34px; border-radius:999px;
+          border:2px solid #fff; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none; }
   #busy { top:18px; }
   #toast { bottom:28px; background:var(--ok); }
-  .spin { width:28px; height:28px; border:5px solid rgba(0,0,0,.25); border-top-color:#111; border-radius:50%; animation:spin .8s linear infinite; }
+  .spin { width:28px; height:28px; border:5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   button.tapped { opacity:.55; }
 
@@ -97,8 +103,8 @@
   #startMsg { font-size:30px; margin:26px 0 6px; }
   #favWrap.start #favs button { font-size:34px; min-height:120px; padding:18px 40px; border-radius:22px; }
 
-  #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; }
-  #confirm .box { background:#222; border-radius:24px; padding:44px 56px; text-align:center; border:3px solid var(--line); }
+  #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
+  #confirm .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
 </style>
 </head>
