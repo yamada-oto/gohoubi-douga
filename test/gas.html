@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>ごほうび動画 GAS確認</title>
+<style>
+  :root { --bg:#111; --fg:#f2f2f2; --sub:#aaa; --accent:#ffcc33; --ok:#5fd17a; --ng:#ff6b6b; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans",sans-serif; font-size:24px; line-height:1.5; }
+  main { max-width:900px; margin:0 auto; padding:16px; }
+  h1 { font-size:28px; margin:4px 0 12px; }
+  button { font-size:26px; padding:16px 26px; border-radius:10px; border:2px solid #555; background:#2a2a2a; color:var(--fg); }
+  button:focus { outline:4px solid var(--accent); outline-offset:2px; }
+  ol { list-style:none; padding:0; margin:16px 0; }
+  li { display:flex; gap:16px; align-items:flex-start; background:#1d1d1d; border-radius:10px; padding:14px 16px; margin:10px 0; }
+  .mark { font-size:40px; line-height:1; min-width:1.2em; text-align:center; font-weight:bold; }
+  .mark.ok { color:var(--ok); }
+  .mark.ng { color:var(--ng); }
+  .mark.wait { color:var(--sub); }
+  .title { font-weight:bold; }
+  .detail { color:var(--sub); font-size:22px; word-break:break-all; white-space:pre-wrap; }
+  .ng-text { color:var(--ng); }
+  #thumb { display:block; margin-top:10px; max-width:100%; width:320px; border-radius:8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ごほうび動画 GAS の確認</h1>
+  <button id="retry">もう一度試す</button>
+  <ol id="list"></ol>
+</main>
+
+<script>
+(function () {
+  var TIMEOUT_MS = 20000;
+  var IMG_TIMEOUT_MS = 8000;
+  var IMG_URL = "https://i.ytimg.com/vi/jNQXAC9IVRw/mqdefault.jpg";
+  var COUNT_KEY = "gohoubi_gas_check_count";
+
+  document.getElementById("retry").onclick = function () { location.reload(); };
+
+  var TITLES = [
+    "1. URL の # から gas と pass を受け取る",
+    "2. GET(合言葉の確認)",
+    "3. POST(送った内容が返るか)",
+    "4. 画像の読み込み",
+    "5. 保存(開いた回数)"
+  ];
+  var rows = [];
+  var list = document.getElementById("list");
+  TITLES.forEach(function (t) {
+    var li = document.createElement("li");
+    var mark = document.createElement("div"); mark.className = "mark wait"; mark.textContent = "…";
+    var body = document.createElement("div");
+    var title = document.createElement("div"); title.className = "title"; title.textContent = t;
+    var detail = document.createElement("div"); detail.className = "detail"; detail.textContent = "まだ";
+    body.appendChild(title); body.appendChild(detail);
+    li.appendChild(mark); li.appendChild(body);
+    list.appendChild(li);
+    rows.push({ mark: mark, detail: detail, body: body });
+  });
+
+  var gas = "", pass = "";
+
+  // gas の URL そのものを画面に出さないため、文章の中にあれば伏せる
+  function hide(text) {
+    text = String(text);
+    if (gas) text = text.split(gas).join("(gas の URL)");
+    return text;
+  }
+  function set(i, ok, text) {
+    var r = rows[i];
+    r.mark.className = "mark " + (ok ? "ok" : "ng");
+    r.mark.textContent = ok ? "○" : "×";
+    r.detail.className = "detail" + (ok ? "" : " ng-text");
+    r.detail.textContent = hide(text);
+  }
+  function errText(e) {
+    if (!e) return "不明なエラー";
+    var name = e.name || "Error";
+    var msg = e.message || String(e);
+    return "種類: " + name + "\n文章: " + msg;
+  }
+
+  // 20秒でタイムアウトする fetch。返り値は { status, text, json }
+  function fetchJson(url, opts) {
+    opts = opts || {};
+    var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer;
+    var timeout = new Promise(function (_, reject) {
+      timer = setTimeout(function () {
+        if (ctrl) ctrl.abort();
+        var e = new Error((TIMEOUT_MS / 1000) + "秒たっても返事がありません");
+        e.name = "Timeout";
+        reject(e);
+      }, TIMEOUT_MS);
+    });
+    var req = fetch(url, opts).then(function (res) {
+      return res.text().then(function (text) {
+        var json = null, parseErr = null;
+        try { json = JSON.parse(text); } catch (e) { parseErr = e; }
+        return { status: res.status, text: text, json: json, parseErr: parseErr };
+      });
+    });
+    return Promise.race([req, timeout]).then(
+      function (v) { clearTimeout(timer); return v; },
+      function (e) { clearTimeout(timer); throw e; }
+    );
+  }
+  function notJson(r) {
+    return "種類: JSON ではない返事(HTTP " + r.status + ")\n文章: " +
+      (r.parseErr ? r.parseErr.message : "") + "\n返事の始め: " + r.text.slice(0, 120);
+  }
+
+  // 1. # から受け取る
+  function step1() {
+    try {
+      var params = new URLSearchParams(location.hash.replace(/^#/, ""));
+      gas = params.get("gas") || "";
+      pass = params.get("pass") || "";
+    } catch (e) {
+      set(0, false, errText(e));
+      return false;
+    }
+    var missing = [];
+    if (!gas) missing.push("gas");
+    if (!pass) missing.push("pass");
+    if (missing.length) {
+      set(0, false, "種類: 足りない\n文章: " + missing.join(" と ") + " が # のうしろにありません");
+      return false;
+    }
+    set(0, true, "gas と pass を受け取りました(gas の URL は表示しません)");
+    return true;
+  }
+
+  // 2. GET
+  function step2() {
+    return fetchJson(gas + "?pass=" + encodeURIComponent(pass)).then(function (r) {
+      if (!r.json) { set(1, false, notJson(r)); return; }
+      var j = r.json;
+      if (j.ok === true && j.pass === true) {
+        set(1, true, "ok: true / pass: true");
+      } else {
+        set(1, false, "種類: 中身がちがう\n文章: ok: " + JSON.stringify(j.ok) + " / pass: " + JSON.stringify(j.pass) +
+          (j.error ? "\nerror: " + JSON.stringify(j.error) : ""));
+      }
+    }).catch(function (e) { set(1, false, errText(e)); });
+  }
+
+  // 3. POST
+  function step3() {
+    var sent = { msg: "test" };
+    var body = JSON.stringify(sent);
+    return fetchJson(gas, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: body
+    }).then(function (r) {
+      if (!r.json) { set(2, false, notJson(r)); return; }
+      var j = r.json, rec = j.received, has = false;
+      if (rec && typeof rec === "object") has = rec.msg === sent.msg;
+      else if (typeof rec === "string") {
+        try { var p = JSON.parse(rec); has = p && p.msg === sent.msg; } catch (e) { has = rec.indexOf(sent.msg) !== -1; }
+      }
+      var shown = "received: " + JSON.stringify(rec);
+      if (j.ok === true && has) {
+        set(2, true, "ok: true / " + shown);
+      } else {
+        set(2, false, "種類: 中身がちがう\n文章: ok: " + JSON.stringify(j.ok) + " / " + shown +
+          (j.error ? "\nerror: " + JSON.stringify(j.error) : ""));
+      }
+    }).catch(function (e) { set(2, false, errText(e)); });
+  }
+
+  // 4. 画像
+  function step4() {
+    return new Promise(function (resolve) {
+      var done = false;
+      var img = document.createElement("img");
+      img.id = "thumb";
+      img.alt = "確認用の画像";
+      var timer = setTimeout(function () {
+        if (done) return; done = true;
+        set(3, false, "種類: Timeout\n文章: " + (IMG_TIMEOUT_MS / 1000) + "秒たっても画像が読めません");
+        resolve();
+      }, IMG_TIMEOUT_MS);
+      img.onload = function () {
+        if (done) return; done = true; clearTimeout(timer);
+        set(3, true, "読めました(" + img.naturalWidth + "×" + img.naturalHeight + ")");
+        resolve();
+      };
+      img.onerror = function () {
+        if (done) return; done = true; clearTimeout(timer);
+        set(3, false, "種類: 読み込みエラー\n文章: 画像を読めませんでした");
+        resolve();
+      };
+      rows[3].body.appendChild(img);
+      img.src = IMG_URL;
+    });
+  }
+
+  // 5. 保存
+  function step5() {
+    try {
+      var n = parseInt(localStorage.getItem(COUNT_KEY) || "0", 10);
+      if (isNaN(n)) n = 0;
+      n += 1;
+      localStorage.setItem(COUNT_KEY, String(n));
+      var back = localStorage.getItem(COUNT_KEY);
+      if (back !== String(n)) throw new Error("保存した数を読み戻せません");
+      set(4, true, "このページを開いた回数: " + n + " 回目");
+    } catch (e) {
+      set(4, false, errText(e));
+    }
+  }
+
+  // 順に試す
+  var have = step1();
+  var p = Promise.resolve();
+  if (have) {
+    p = p.then(step2).then(step3);
+  } else {
+    set(1, false, "種類: とばした\n文章: 1 が × のため試していません");
+    set(2, false, "種類: とばした\n文章: 1 が × のため試していません");
+  }
+  p.then(step4).then(step5);
+})();
+</script>
+</body>
+</html>
