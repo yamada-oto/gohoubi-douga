@@ -83,6 +83,20 @@
   #timeUpBox .tu-text { font-size:36px; font-weight:bold; color:var(--accent); }
 
   /* たしかめる */
+  /* まってね・できたよ */
+  .pill { position:fixed; left:50%; transform:translateX(-50%); z-index:30; display:flex; gap:14px; align-items:center;
+          background:var(--accent); color:#111; font-weight:bold; font-size:30px; padding:14px 34px; border-radius:999px;
+          box-shadow:0 6px 20px rgba(0,0,0,.6); pointer-events:none; }
+  #busy { top:18px; }
+  #toast { bottom:28px; background:var(--ok); }
+  .spin { width:28px; height:28px; border:5px solid rgba(0,0,0,.25); border-top-color:#111; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  button.tapped { opacity:.55; }
+
+  /* はじめの「すきなひと」 */
+  #startMsg { font-size:30px; margin:26px 0 6px; }
+  #favWrap.start #favs button { font-size:34px; min-height:120px; padding:18px 40px; border-radius:22px; }
+
   #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; }
   #confirm .box { background:#222; border-radius:24px; padding:44px 56px; text-align:center; border:3px solid var(--line); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
@@ -141,12 +155,13 @@
         <label class="check"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
       </div>
 
+      <div id="startMsg" hidden>すきなひとを えらぶか、さがしてね</div>
       <div id="favWrap" hidden>
         <div class="favs-label">すきなひと</div>
         <div class="row" id="favs"></div>
       </div>
 
-      <div class="source">YouTube のどうが</div>
+      <div class="source" id="source">YouTube のどうが</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
       <div id="list"></div>
       <div id="emptyMsg" class="msg" hidden>いまのじかんでみられるどうがはないよ。のこったじかんは、つぎにつかえるよ</div>
@@ -173,6 +188,9 @@
     <div id="watchErr" class="msg" hidden>このどうがは みられないよ</div>
   </div>
 </section>
+
+<div id="busy" class="pill" hidden><span class="spin"></span>まってね</div>
+<div id="toast" class="pill" hidden></div>
 
 <!-- じかんをたす? -->
 <div id="confirm" hidden>
@@ -220,12 +238,45 @@
     return h ? h + ":" + (m < 10 ? "0" : "") + m + ":" + ss : m + ":" + ss;
   }
 
+  // ---- 押したことがすぐわかるように ----
+  // iPad の Safari で :active を効かせる
+  document.addEventListener("touchstart", function () {}, { passive: true });
+  var lastTap = null, lastTapAt = 0;
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button") : null;
+    if (b) { lastTap = b; lastTapAt = Date.now(); }
+  }, true);
+
+  var busyCount = 0, tappedNow = [];
+  function busyOn() {
+    busyCount++;
+    $("busy").hidden = false;
+    if (lastTap && Date.now() - lastTapAt < 500 && document.body.contains(lastTap)) {
+      lastTap.classList.add("tapped"); tappedNow.push(lastTap);
+    }
+  }
+  function busyOff() {
+    busyCount = Math.max(0, busyCount - 1);
+    if (busyCount) return;
+    $("busy").hidden = true;
+    tappedNow.forEach(function (b) { b.classList.remove("tapped"); });
+    tappedNow = [];
+  }
+  var toastTimer;
+  function toast(text) {
+    $("toast").textContent = text; $("toast").hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { $("toast").hidden = true; }, 2500);
+  }
+
   // ---- GAS との通信 ----
   function api(action, data, opts) {
     var body = { pass: PASS, action: action };
     Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
     var init = { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) };
     if (opts && opts.keepalive) { init.keepalive = true; return fetch(GAS, init); }
+    var quiet = !!(opts && opts.quiet);   // 見ている間の保存では「まってね」を出さない
+    if (!quiet) busyOn();
     var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
     if (ctrl) init.signal = ctrl.signal;
     var timer;
@@ -239,9 +290,10 @@
       return j;
     });
     return Promise.race([req, timeout]).then(
-      function (v) { clearTimeout(timer); return v; },
+      function (v) { clearTimeout(timer); if (!quiet) busyOff(); return v; },
       function (e) {
         clearTimeout(timer);
+        if (!quiet) busyOff();
         var code = (e && e.code) ? e.code : "network";
         console.warn("gohoubi: " + action + " " + code); // URL と合言葉は出さない
         throw { code: code };
@@ -322,9 +374,11 @@
     $("hideSeen").checked = S.hideWatched;
     renderFavs();
     show("s-pick");
-    if (S.remaining > 0 && S.items.length === 0 && !S.loading) reload();
-    else renderPick();
+    renderPick();   // ひらいただけでは さがさない
   }
+
+  // なにかを えらんだり さがしたりしているか
+  function isActive() { return !!(S.q || S.channelId || S.popular); }
 
   function renderFavs() {
     var box = $("favs"); box.innerHTML = "";
@@ -353,6 +407,10 @@
     $("more").hidden = S.loading || !S.next;
     $("quotaMsg").hidden = !S.quota;
     $("emptyMsg").hidden = S.loading || S.quota || S.items.length > 0 || !!S.next || !S.loaded;
+    var start = !isActive();
+    $("startMsg").hidden = !start;
+    $("favWrap").classList.toggle("start", start);
+    $("source").hidden = start;
   }
 
   function buildQuery(cursor) {
@@ -368,6 +426,12 @@
   function reload() {
     S.items = []; S.seen = {}; S.next = null; S.quota = false; S.loaded = false;
     $("list").innerHTML = "";
+    $("pickErr").hidden = true;
+    if (!isActive()) {      // はじめの画面にもどる(さがさない)
+      gen++; S.loading = false;
+      renderPick();
+      return;
+    }
     load(false);
   }
 
@@ -469,6 +533,7 @@
       if (S !== s) return;
       s.addReq = null;
       if (typeof r.remainingSeconds === "number") s.remaining = r.remainingSeconds;
+      toast("30ぷん たしたよ");
       if (s.remaining > 0 && s.items.length === 0 && !s.loading) reload(); else renderPick();
     }, function () {
       if (S !== s) return;
@@ -648,7 +713,7 @@
     var sess = saveQ[0];
     sess.again = false;
     sending = true;
-    api("saveWatch", snapshot(sess)).then(function (r) {
+    api("saveWatch", snapshot(sess), { quiet: true }).then(function (r) {
       sending = false;
       if (!sess.again) saveQ.shift();
       if (typeof r.remainingSeconds === "number" && S && S.childId === sess.childId && !W) {
