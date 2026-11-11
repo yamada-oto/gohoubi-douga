@@ -56,6 +56,13 @@
              display:flex; align-items:center; justify-content:center; flex:none; box-shadow:none; }
   .hdr-btn svg { width:36px; height:36px; }
   .hdr-who { display:flex; align-items:center; gap:10px; min-width:0; }
+  .pts { font-family:var(--brand); font-weight:bold; white-space:nowrap; }
+  #hdrPts { font-size:26px; color:var(--accent-deep); background:#fff; border-radius:999px; padding:4px 16px; margin-left:6px; }
+  #kids .pts { font-size:30px; color:#fff; }
+  .hdr-btn[aria-disabled="true"] { opacity:.45; }
+  .source-row { display:flex; align-items:center; gap:28px; margin:22px 0 10px; }
+  .source-row .source { margin:0; }
+  #confirm .q small { display:block; font-size:28px; color:var(--sub); margin-top:10px; }
   .hdr-avatar { width:48px; height:48px; border-radius:50%; background:#fed7aa; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; flex:none; }
   .hdr-avatar svg { width:30px; height:30px; }
   #whoName { font-size:32px; font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -91,12 +98,13 @@
   .thumb { position:relative; background:#000; }
   .thumb img { display:block; width:100%; height:auto; }
   .card .info { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
+  .card .foot { margin-top:auto; padding-top:10px; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .card .t { font-size:23px; font-weight:bold; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .card .c { align-self:flex-start; font-size:20px; color:var(--accent-deep); margin-top:6px; padding:4px 12px; border-radius:999px;
+  .card .c { font-size:20px; color:var(--accent-deep); padding:4px 12px; border-radius:999px;
              background:#ffedd5; font-weight:bold; }
   .card .c:active { background:#fed7aa; }
-  .tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; font-size:20px; }
-  .card .views { margin-top:auto; padding-top:10px; font-size:19px; color:var(--sub); }
+  .tags { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; font-size:22px; }
+  .card .views { font-size:19px; color:var(--sub); }
   #chanBar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:6px 0 16px; }
   #chanName { font-size:28px; font-weight:bold; }
   .heart { display:inline-flex; align-items:center; gap:10px; }
@@ -104,8 +112,8 @@
   #favBtn[aria-pressed="true"] { background:#fce7f3; border-color:#fce7f3; color:#be185d; box-shadow:none; }
   #favMenu svg { width:26px; height:26px; color:#ec4899; flex:none; }
   #favMenu button { display:flex; align-items:center; gap:12px; }
-  .tag { padding:2px 12px; border-radius:999px; background:#f3f4f6; }
-  .tag.len { background:#f3f4f6; }
+  .tag { padding:3px 14px; border-radius:999px; background:#f3f4f6; font-weight:bold; }
+  .tag.len { background:#374151; color:#fff; font-size:24px; }
   .tag.resume { background:#ffedd5; color:#c2410c; font-weight:bold; }
   .tag.seen { background:#dcfce7; color:#15803d; font-weight:bold; }
   #more { display:block; margin:28px auto 0; }
@@ -146,10 +154,10 @@
 
 <header id="appHeader" hidden>
   <button class="hdr-btn" id="hdrBack" aria-label="もどる"></button>
-  <div class="hdr-who"><span class="hdr-avatar" id="hdrAvatar"></span><span id="whoName"></span></div>
+  <div class="hdr-who"><span class="hdr-avatar" id="hdrAvatar"></span><span id="whoName"></span><span class="pts" id="hdrPts"></span></div>
   <div class="hdr-right">
     <span class="hdr-time"><span class="lbl">のこりじかん</span><span id="hdrTime"></span></span>
-    <button class="hdr-btn" id="addBtn" aria-label="じかんをたす"></button>
+    <button class="hdr-btn" id="addBtn" aria-label="ポイントをつかって じかんをたす"></button>
   </div>
 </header>
 
@@ -178,7 +186,7 @@
 
     <div id="timeUpPick" class="msg" hidden>
       じかんになったよ
-      <div class="row"><button class="big primary" id="addBtn2">じかんをたす</button></div>
+      <div class="row"><button class="big primary" id="addBtn2">ポイントをつかって 30ぷん たす</button></div>
     </div>
 
     <div id="pickMain">
@@ -200,13 +208,15 @@
         <button id="bothBtn" class="primary" type="button">あわせて<br>さがす</button>
       </div>
       <div class="checks">
-        <label class="chk"><input type="checkbox" id="popChk">にんき</label>
         <label class="chk"><input type="checkbox" id="safeChk">こわくない</label>
         <label class="chk"><input type="checkbox" id="hideSeen">見おわったのをはぶく</label>
       </div>
       <div id="startMsg" class="note" hidden>さがしたいものを いれて「さがす」をおしてね</div>
 
-      <div class="source" id="source">YouTube のどうが</div>
+      <div class="source-row" id="source">
+        <span class="source">YouTube のどうが</span>
+        <label class="chk"><input type="checkbox" id="popChk">にんきじゅん</label>
+      </div>
       <div id="notFoundMsg" class="msg" hidden>そのひとは みつからなかったよ</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
       <div id="chanBar" hidden>
@@ -244,7 +254,7 @@
 <!-- じかんをたす? -->
 <div id="confirm" hidden>
   <div class="box">
-    <div class="q">30ぷん たす?</div>
+    <div class="q" id="confirmQ"></div>
     <div class="row" style="justify-content:center">
       <button class="big primary" id="yesAdd">はい</button>
       <button class="big" id="noAdd">やめる</button>
@@ -299,6 +309,15 @@
 
   function minsUp(sec) { return Math.max(0, Math.ceil(sec / 60)); }
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  // CHI-GO POINT ののこり。読めないときは「?」
+  function fmtPts(p) { return (typeof p === "number" ? p.toLocaleString("ja-JP") : "?") + "pt"; }
+  // ポイントをつかう操作の番号(英字入り。やりなおしでも同じ番号を使う)
+  function opId() {
+    var d = new Date();
+    var b = new Uint8Array(6); crypto.getRandomValues(b);
+    var h = Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join("");
+    return "dg-" + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + "-" + h;
+  }
   // 残り時間は 分:秒。超えたら -02:05 のように出す
   function fmtLeft(sec) {
     var l = Math.ceil(sec);
@@ -324,10 +343,10 @@
   function fmtViews(n) {
     n = Number(n) || 0;
     var one = function (x) { return (Math.floor(x * 10) / 10).toString(); };
-    if (n >= 1e8) return one(n / 1e8) + "おくかい";
-    if (n >= 1e5) return Math.floor(n / 1e4) + "まんかい";
-    if (n >= 1e4) return one(n / 1e4) + "まんかい";
-    return n.toLocaleString("ja-JP") + "かい";
+    if (n >= 1e8) return one(n / 1e8) + "おく回";
+    if (n >= 1e5) return Math.floor(n / 1e4) + "まん回";
+    if (n >= 1e4) return one(n / 1e4) + "まん回";
+    return n.toLocaleString("ja-JP") + "回";
   }
   function fmtLen(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -433,6 +452,8 @@
         b.appendChild(c);
       }
       b.appendChild(document.createTextNode(k.name));
+      var pt = document.createElement("span"); pt.className = "pts"; pt.textContent = fmtPts(k.points);
+      b.appendChild(pt);
       b.onclick = function () { pickChild(k); };
       box.appendChild(b);
     });
@@ -442,7 +463,7 @@
     S = null;
     $("pickErr").hidden = true;
     show("s-who");
-    if (!kids) loadKids();
+    loadKids();   // ポイントが変わっているかもしれないので、毎回よみなおす
   }
 
   function pickChild(k) {
@@ -451,8 +472,10 @@
       S = {
         childId: k.childId, name: k.name,
         remaining: Number(r.remainingSeconds) || 0,
+        points: typeof r.points === "number" ? r.points : null,
+        cost: typeof r.cost === "number" ? r.cost : null,
         favorites: r.favorites || [],
-        q: "", who: "", popular: false, popularChecked: false, notScary: false, hideWatched: false,
+        q: "", who: "", popular: false, notScary: false, hideWatched: false,
         items: [], seen: {}, next: null, quota: false, notFound: false, loading: false, addReq: null
       };
       openPick("えらぶ");
@@ -469,7 +492,7 @@
     $("hdrAvatar").hidden = !kidIcon(S.childId);
     $("q").value = S.q;
     $("who").value = S.who;
-    $("popChk").checked = S.popularChecked;
+    $("popChk").checked = S.popular;
     $("safeChk").checked = S.notScary;
     $("hideSeen").checked = S.hideWatched;
     renderFavs();
@@ -478,7 +501,7 @@
   }
 
   // なにかを さがしているか
-  function isActive() { return !!(S.q || S.who || S.popular); }
+  function isActive() { return !!(S.q || S.who); }
 
   // すきなひと: ▼ で選ぶと「だれの?」に入る(さがすのは「さがす」を押したとき)
   function closeFavs() { $("favMenu").hidden = true; $("favToggle").setAttribute("aria-expanded", "false"); }
@@ -512,6 +535,7 @@
   function renderPick() {
     if (!S) return;
     if (!W) setTime(S.remaining);
+    renderPoints();
     renderChanBar();
     var over = S.remaining <= 0;
     $("timeUpPick").hidden = !over;
@@ -601,8 +625,10 @@
     tags.appendChild(rs); tags.appendChild(sn);
     var vw = document.createElement("div"); vw.className = "views"; vw.textContent = "さいせい " + fmtViews(it.viewCount);
     vw.hidden = typeof it.viewCount !== "number";
-    info.appendChild(tags); info.appendChild(t); info.appendChild(c); info.appendChild(vw);
-    b.appendChild(th); b.appendChild(info);
+    var foot = document.createElement("div"); foot.className = "foot";
+    foot.appendChild(c); foot.appendChild(vw);
+    info.appendChild(t); info.appendChild(foot);
+    b.appendChild(tags); b.appendChild(th); b.appendChild(info);
     it._mark = function () {
       rs.hidden = !it.resume;
       if (it.resume) rs.textContent = "つづき " + minsUp(it.resume.left) + "ふん";
@@ -613,7 +639,7 @@
     return b;
   }
 
-  // kind: word=なにを / who=だれの / both=あわせて。にんきは さがすときに読む
+  // kind: word=なにを / who=だれの / both=あわせて
   // ▼やチャンネル名で選んだ人は、名前を書きかえないかぎり チャンネルIDで さがす
   var pickedWho = null;
   function runSearch(kind) {
@@ -622,7 +648,7 @@
     if (kind === "who") q = "";
     $("q").blur(); $("who").blur();
     closeFavs();
-    S.q = q; S.who = who; S.popular = S.popularChecked;
+    S.q = q; S.who = who;
     S.whoChannelId = (pickedWho && who && pickedWho.name === who) ? pickedWho.channelId : null;
     reload();
   }
@@ -663,7 +689,8 @@
   $("searchForm").onsubmit = function (e) { e.preventDefault(); runSearch("word"); };
   $("whoForm").onsubmit = function (e) { e.preventDefault(); runSearch("who"); };
   $("bothBtn").onclick = function () { runSearch("both"); };
-  $("popChk").onchange = function () { S.popularChecked = this.checked; };
+  // にんきじゅん: いまの検索結果を、再生回数の多い順にならべかえる
+  $("popChk").onchange = function () { S.popular = this.checked; if (isActive()) reload(); };
   $("safeChk").onchange = function () { S.notScary = this.checked; reload(); };
   $("hideSeen").onchange = function () { S.hideWatched = this.checked; reload(); };
   $("more").onclick = function () { if (S.next) load(true); };
@@ -671,30 +698,49 @@
     if (W) leave(W, "つぎをえらぶ"); else goWho();
   };
 
-  // じかんをたす
-  function askAdd() { $("confirm").hidden = false; }
+  // ポイントをつかって30分たす(無料で足す入口はない)
+  function renderPoints() {
+    if (!S) return;
+    $("hdrPts").textContent = fmtPts(S.points);
+    var can = S.cost !== null && S.points !== null && S.points >= S.cost;
+    $("addBtn").setAttribute("aria-disabled", String(!can));
+  }
+  function askAdd() {
+    if (!S) return;
+    if (S.cost === null || S.points === null) { toast("いまは つかえないよ"); return; }
+    if (S.points < S.cost) { toast("ポイントが たりないよ(あと " + (S.cost - S.points) + "pt)"); return; }
+    $("confirmQ").innerHTML = S.cost + "ポイント つかって<br>30ぷん たす?<small>いま " + fmtPts(S.points) + "</small>";
+    $("confirm").hidden = false;
+  }
   $("addBtn").onclick = askAdd;
   $("addBtn2").onclick = askAdd;
   $("noAdd").onclick = function () { $("confirm").hidden = true; };
   $("yesAdd").onclick = function () {
     $("confirm").hidden = true;
-    S.addReq = uuid();          // 押すたびにあたらしい番号
+    if (!S) return;
+    if (!S.addReq) S.addReq = opId();   // 前のが うまくいかなかったときは、同じ番号でやりなおす(二重に引かれない)
     sendAdd();
   };
   function sendAdd() {
     var s = S; if (!s) return;
     $("pickErr").hidden = true;
-    api("addTime", { childId: s.childId, requestId: s.addReq }).then(function (r) {
+    api("spendPoints", { childId: s.childId, opId: s.addReq }).then(function (r) {
       if (S !== s) return;
       s.addReq = null;
+      var before = s.remaining;
       if (typeof r.remainingSeconds === "number") s.remaining = r.remainingSeconds;
-      toast("30ぷん たしたよ");
-      if (W) addedWhileWatching(W);
-      if (s.remaining > 0 && s.items.length === 0 && !s.loading) reload(); else renderPick();
+      s.points = typeof r.points === "number" ? r.points : null;
+      if (r.spent === true) {
+        toast("30ぷん たしたよ");
+        if (W) addedWhileWatching(W);
+      } else {
+        toast(r.reason === "short" ? "ポイントが たりないよ" : "いまは つかえないよ");
+      }
+      if (r.spent === true && s.remaining > 0 && before <= 0 && !s.loading && isActive()) reload(); else renderPick();
     }, function () {
       if (S !== s) return;
       if (W) { toast("うまくいかなかったよ"); return; }
-      showErr("pickErr", sendAdd); // やりなおしは同じ requestId
+      showErr("pickErr", sendAdd); // やりなおしは同じ番号(二重に引かれない)
     });
   }
 
