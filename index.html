@@ -58,9 +58,15 @@
   .hdr-who { display:flex; align-items:center; gap:10px; min-width:0; }
   .hdr-avatar { width:48px; height:48px; border-radius:50%; background:#fed7aa; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; flex:none; }
   .hdr-avatar svg { width:30px; height:30px; }
-  #whoName { font-size:32px; font-weight:900; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #whoName { font-size:32px; font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .hdr-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
-  #hdrTime { font-family:var(--brand); font-size:46px; font-weight:bold; color:#fff; font-variant-numeric:tabular-nums; }
+  .hdr-time { display:flex; align-items:center; gap:12px; color:#fff; }
+  .hdr-time .lbl { font-size:22px; font-weight:bold; }
+  #hdrTime { font-family:var(--brand); font-size:46px; font-weight:bold; display:inline-flex; }
+  #hdrTime span { display:inline-block; text-align:center; }
+  #hdrTime .d { width:.64em; }
+  #hdrTime .sg { width:.42em; }
+  #hdrTime .co { width:.3em; }
   .note { font-size:22px; color:var(--sub); margin-top:4px; }
   #pickTitle { font-size:36px; margin:18px 0 8px; color:var(--accent-deep); }
   .find { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
@@ -84,10 +90,20 @@
           min-height:0; border-radius:24px; background:var(--card); border:3px solid #fff; font-weight:normal; }
   .thumb { position:relative; background:#000; }
   .thumb img { display:block; width:100%; height:auto; }
-  .card .info { padding:12px 14px 16px; }
+  .card .info { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
   .card .t { font-size:23px; font-weight:bold; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .card .c { font-size:20px; color:var(--sub); margin-top:6px; }
-  .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:20px; }
+  .card .c { align-self:flex-start; font-size:20px; color:var(--accent-deep); margin-top:6px; padding:4px 12px; border-radius:999px;
+             background:#ffedd5; font-weight:bold; }
+  .card .c:active { background:#fed7aa; }
+  .tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; font-size:20px; }
+  .card .views { margin-top:auto; padding-top:10px; font-size:19px; color:var(--sub); }
+  #chanBar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:6px 0 16px; }
+  #chanName { font-size:28px; font-weight:bold; }
+  .heart { display:inline-flex; align-items:center; gap:10px; }
+  .heart svg { width:30px; height:30px; flex:none; color:#ec4899; }
+  #favBtn[aria-pressed="true"] { background:#fce7f3; border-color:#fce7f3; color:#be185d; box-shadow:none; }
+  #favMenu svg { width:26px; height:26px; color:#ec4899; flex:none; }
+  #favMenu button { display:flex; align-items:center; gap:12px; }
   .tag { padding:2px 12px; border-radius:999px; background:#f3f4f6; }
   .tag.len { background:#f3f4f6; }
   .tag.resume { background:#ffedd5; color:#c2410c; font-weight:bold; }
@@ -132,7 +148,7 @@
   <button class="hdr-btn" id="hdrBack" aria-label="もどる"></button>
   <div class="hdr-who"><span class="hdr-avatar" id="hdrAvatar"></span><span id="whoName"></span></div>
   <div class="hdr-right">
-    <span id="hdrTime">00:00</span>
+    <span class="hdr-time"><span class="lbl">のこりじかん</span><span id="hdrTime"></span></span>
     <button class="hdr-btn" id="addBtn" aria-label="じかんをたす"></button>
   </div>
 </header>
@@ -168,10 +184,6 @@
     <div id="pickMain">
       <div class="find">
         <div class="find-rows">
-          <form class="search" id="searchForm" autocomplete="off">
-            <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="なにをみる">
-            <button type="submit">さがす</button>
-          </form>
           <form class="search" id="whoForm" autocomplete="off">
             <div class="who-wrap">
               <input id="who" type="search" placeholder="だれの?" enterkeyhint="search" aria-label="だれの">
@@ -180,19 +192,27 @@
             </div>
             <button type="submit">さがす</button>
           </form>
+          <form class="search" id="searchForm" autocomplete="off">
+            <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="なにをみる">
+            <button type="submit">さがす</button>
+          </form>
         </div>
         <button id="bothBtn" class="primary" type="button">あわせて<br>さがす</button>
       </div>
       <div class="checks">
         <label class="chk"><input type="checkbox" id="popChk">にんき</label>
         <label class="chk"><input type="checkbox" id="safeChk">こわくない</label>
-        <label class="chk"><input type="checkbox" id="hideSeen">みおわったのをはぶく</label>
+        <label class="chk"><input type="checkbox" id="hideSeen">見おわったのをはぶく</label>
       </div>
       <div id="startMsg" class="note" hidden>さがしたいものを いれて「さがす」をおしてね</div>
 
       <div class="source" id="source">YouTube のどうが</div>
       <div id="notFoundMsg" class="msg" hidden>そのひとは みつからなかったよ</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
+      <div id="chanBar" hidden>
+        <span id="chanName"></span>
+        <button id="favBtn" type="button" aria-pressed="false"></button>
+      </div>
       <div id="list"></div>
       <div id="emptyMsg" class="msg" hidden>いまのじかんでみられるどうがはないよ。のこったじかんは、つぎにつかえるよ</div>
       <button id="more" class="big" hidden>ほかのどうがをみる</button>
@@ -268,7 +288,9 @@
     carrot: svg('<path d="M15 16a1 1 0 0 0-7-7q-4 4-5.987 12.385a.5.5 0 0 0 .602.602Q11 20 15 16l-3-3"/><path d="M15 9q4 4 7 0-3-4-7 0 4-4 0-7-4 3 0 7"/><path d="m8 15-2.58-2.58"/>'),
     image: svg('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'),
     plus: svg('<path d="M5 12h14"/><path d="M12 5v14"/>'),
-    back: svg('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>')
+    back: svg('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>'),
+    heart: svg('<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>'),
+    heartFill: svg('<path fill="currentColor" d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>')
   };
   var KID_ICONS = { c1: "carrot", c2: "image" };
   function kidIcon(childId) { return ICONS[KID_ICONS[childId]] || ""; }
@@ -282,6 +304,30 @@
     var l = Math.ceil(sec);
     var a = Math.abs(l);
     return (l < 0 ? "-" : "") + pad2(Math.floor(a / 60)) + ":" + pad2(a % 60);
+  }
+  // 1文字ずつ同じ幅の枠に入れて、「のこりじかん」と「:」が動かないようにする
+  var lastTimeText = null;
+  function setTime(sec) {
+    var t = fmtLeft(sec);
+    if (t === lastTimeText) return;
+    lastTimeText = t;
+    var neg = t.charAt(0) === "-";
+    var body = neg ? t.slice(1) : t;
+    var html = '<span class="sg">' + (neg ? "-" : "") + "</span>";
+    body.split("").forEach(function (ch) {
+      html += ch === ":" ? '<span class="co">:</span>' : '<span class="d">' + ch + "</span>";
+    });
+    $("hdrTime").innerHTML = html;
+    $("hdrTime").setAttribute("aria-label", "のこりじかん " + t);
+  }
+  // 再生回数: 8,532かい / 1.2まんかい / 35まんかい / 1.4おくかい
+  function fmtViews(n) {
+    n = Number(n) || 0;
+    var one = function (x) { return (Math.floor(x * 10) / 10).toString(); };
+    if (n >= 1e8) return one(n / 1e8) + "おくかい";
+    if (n >= 1e5) return Math.floor(n / 1e4) + "まんかい";
+    if (n >= 1e4) return one(n / 1e4) + "まんかい";
+    return n.toLocaleString("ja-JP") + "かい";
   }
   function fmtLen(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -443,8 +489,13 @@
     S.favorites.forEach(function (f) {
       var b = document.createElement("button");
       b.type = "button";
-      b.textContent = f.name;
-      b.onclick = function () { $("who").value = f.name; closeFavs(); };
+      b.innerHTML = ICONS.heartFill;
+      b.appendChild(document.createTextNode(f.name));
+      b.onclick = function () {
+        $("who").value = f.name;
+        pickedWho = { name: f.name, channelId: f.channelId };
+        closeFavs();
+      };
       box.appendChild(b);
     });
   }
@@ -460,7 +511,8 @@
 
   function renderPick() {
     if (!S) return;
-    if (!W) $("hdrTime").textContent = fmtLeft(S.remaining);
+    if (!W) setTime(S.remaining);
+    renderChanBar();
     var over = S.remaining <= 0;
     $("timeUpPick").hidden = !over;
     $("pickMain").hidden = over;
@@ -475,14 +527,14 @@
 
   function buildQuery(cursor) {
     var q = { childId: S.childId, popular: S.popular, notScary: S.notScary, hideWatched: S.hideWatched, cursor: cursor || null };
-    if (S.who) { q.mode = "person"; q.who = S.who; q.q = S.q; }
+    if (S.who) { q.mode = "person"; q.who = S.who; q.q = S.q; if (S.whoChannelId) q.channelId = S.whoChannelId; }
     else { q.mode = "search"; q.q = S.q; }
     return q;
   }
 
   // 条件が変わった: cursor を消して読みなおす
   function reload() {
-    S.items = []; S.seen = {}; S.next = null; S.quota = false; S.notFound = false; S.loaded = false;
+    S.items = []; S.seen = {}; S.next = null; S.quota = false; S.notFound = false; S.loaded = false; S.chanId = null;
     $("list").innerHTML = "";
     $("pickErr").hidden = true;
     if (!isActive()) {      // はじめの画面にもどる(さがさない)
@@ -505,6 +557,7 @@
         if (typeof r.remainingSeconds === "number") S.remaining = r.remainingSeconds;
         if (r.quota === true) S.quota = true;
         if (r.notFound === true) S.notFound = true;
+        if (r.channelId) S.chanId = r.channelId;
         var added = 0;
         (r.items || []).forEach(function (it) {
           if (!it || !it.videoId || S.seen[it.videoId]) return;
@@ -537,14 +590,18 @@
     th.appendChild(img);
     var info = document.createElement("div"); info.className = "info";
     var t = document.createElement("div"); t.className = "t"; t.textContent = it.title;
-    var c = document.createElement("div"); c.className = "c"; c.textContent = it.channelTitle;
+    var c = document.createElement("span"); c.className = "c"; c.textContent = it.channelTitle;
+    c.setAttribute("role", "button");
+    c.onclick = function (e) { e.stopPropagation(); showChannel(it); };
     var tags = document.createElement("div"); tags.className = "tags";
     var len = document.createElement("span"); len.className = "tag len"; len.textContent = fmtLen(it.seconds);
     tags.appendChild(len);
     var rs = document.createElement("span"); rs.className = "tag resume";
-    var sn = document.createElement("span"); sn.className = "tag seen"; sn.textContent = "みたよ";
+    var sn = document.createElement("span"); sn.className = "tag seen"; sn.textContent = "見おわった";
     tags.appendChild(rs); tags.appendChild(sn);
-    info.appendChild(t); info.appendChild(c); info.appendChild(tags);
+    var vw = document.createElement("div"); vw.className = "views"; vw.textContent = "さいせい " + fmtViews(it.viewCount);
+    vw.hidden = typeof it.viewCount !== "number";
+    info.appendChild(tags); info.appendChild(t); info.appendChild(c); info.appendChild(vw);
     b.appendChild(th); b.appendChild(info);
     it._mark = function () {
       rs.hidden = !it.resume;
@@ -557,6 +614,8 @@
   }
 
   // kind: word=なにを / who=だれの / both=あわせて。にんきは さがすときに読む
+  // ▼やチャンネル名で選んだ人は、名前を書きかえないかぎり チャンネルIDで さがす
+  var pickedWho = null;
   function runSearch(kind) {
     var q = $("q").value.trim(), who = $("who").value.trim();
     if (kind === "word") who = "";
@@ -564,8 +623,43 @@
     $("q").blur(); $("who").blur();
     closeFavs();
     S.q = q; S.who = who; S.popular = S.popularChecked;
+    S.whoChannelId = (pickedWho && who && pickedWho.name === who) ? pickedWho.channelId : null;
     reload();
   }
+  $("who").addEventListener("input", function () { pickedWho = null; });
+
+  // 動画のチャンネル名を押した: そのチャンネルの動画だけを出す
+  function showChannel(it) {
+    pickedWho = { name: it.channelTitle, channelId: it.channelId };
+    $("who").value = it.channelTitle;
+    $("q").value = "";
+    runSearch("who");
+  }
+
+  // 検索結果の上: その人を「すきなひと」に とうろくする
+  function renderChanBar() {
+    var on = !!(S && S.who && S.chanId && S.items.length);
+    $("chanBar").hidden = !on;
+    if (!on) return;
+    var first = S.items.filter(function (i) { return i.channelId === S.chanId; })[0];
+    $("chanName").textContent = first ? first.channelTitle : S.who;
+    var fav = S.favorites.some(function (f) { return f.channelId === S.chanId; });
+    var b = $("favBtn");
+    b.setAttribute("aria-pressed", String(fav));
+    b.disabled = fav;
+    b.innerHTML = '<span class="heart">' + (fav ? ICONS.heartFill : ICONS.heart) + "<span>" + (fav ? "すきなひと" : "すきなひとに とうろく") + "</span></span>";
+  }
+  $("favBtn").onclick = function () {
+    var s = S; if (!s || !s.chanId) return;
+    var id = s.chanId;
+    api("addFavorite", { childId: s.childId, channelId: id }).then(function (r) {
+      if (S !== s) return;
+      s.favorites = r.favorites || s.favorites;
+      renderFavs();
+      renderChanBar();
+      toast("とうろくしたよ");
+    }, function () { if (S === s) toast("うまくいかなかったよ"); });
+  };
   $("searchForm").onsubmit = function (e) { e.preventDefault(); runSearch("word"); };
   $("whoForm").onsubmit = function (e) { e.preventDefault(); runSearch("who"); };
   $("bothBtn").onclick = function () { runSearch("both"); };
@@ -652,9 +746,12 @@
   }
 
   // 「はじめる」: 動かなければ、プレーヤーの ▶ を案内する
+  function setPlayLabel(playing) { $("startBtn").textContent = playing ? "とめる" : "はじめる"; }
   $("startBtn").onclick = function () {
     var sess = W;
     if (!sess || !sess.player || !sess.player.playVideo) return;
+    var st = sess.player.getPlayerState ? sess.player.getPlayerState() : -1;
+    if (st === 1 || st === 3) { try { sess.player.pauseVideo(); } catch (e) {} setPlayLabel(false); return; }
     try { sess.player.playVideo(); } catch (e) {}
     setTimeout(function () {
       if (W !== sess || !sess.player || !sess.player.getPlayerState) return;
@@ -665,6 +762,7 @@
 
   function createPlayer(sess, startAt) {
     $("startBtn").disabled = true;
+    setPlayLabel(false);
     var box = $("playerBox"); box.innerHTML = "";
     var holder = document.createElement("div"); box.appendChild(holder);
     ytReady.then(function () {
@@ -703,7 +801,7 @@
   function leftOf(sess) { return sess.startRemaining - sess.acc; }
 
   function renderWatchLeft(sess) {
-    $("hdrTime").textContent = fmtLeft(leftOf(sess));
+    setTime(leftOf(sess));
   }
 
   // 0.5秒ごとに、本編の再生位置が進んだ分だけを数える(test/index.html と同じ方式)
@@ -747,6 +845,7 @@
 
   function onState(sess, st) {
     if (sess.closed) return;
+    if (W === sess) setPlayLabel(st === 1 || st === 3);
     if (st === 2) {
       try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {}
       if (sess.started) { sess.lastSaveAt = Date.now(); requestSave(sess); }
