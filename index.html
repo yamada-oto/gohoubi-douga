@@ -1155,9 +1155,20 @@
     function playerState() {
       try { return (W && W.player && W.player.getPlayerState) ? W.player.getPlayerState() : -1; } catch (e) { return -1; }
     }
+    // 10びょう おくる。押しつづけると つづけて おくる(1秒に5回くらい = 1秒で50秒ぶん)
+    var seekAt = 0, seekPos = 0;
     function seek(d) {
       if (!W || !W.player || !W.player.seekTo) return;
-      try { W.player.seekTo(Math.max(0, (W.player.getCurrentTime() || 0) + d), true); } catch (e) {}
+      var now = Date.now();
+      if (now - seekAt < 180) return;
+      try {
+        var base = (now - seekAt < 1000) ? seekPos : (W.player.getCurrentTime() || 0);
+        var dur = W.player.getDuration ? (W.player.getDuration() || 0) : 0;
+        seekPos = Math.max(0, base + d);
+        if (dur) seekPos = Math.min(seekPos, Math.max(0, dur - 2));
+        seekAt = now;
+        W.player.seekTo(seekPos, true);
+      } catch (e) {}
     }
 
     // 10びょう もどす/すすめる
