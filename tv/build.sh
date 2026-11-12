@@ -38,3 +38,4 @@ KSPASS="$KSPASS" "$BT/apksigner" sign --ks "$KS" --ks-pass env:KSPASS --ks-key-a
 rm -f "$KS"
 "$BT/apksigner" verify build/gohoubi-tv.apk
 ls -l build/gohoubi-tv.apk
+# 2026-11-12: 固定の鍵で作りなおす
