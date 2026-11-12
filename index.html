@@ -163,7 +163,10 @@
   html.tv #playerBox { width:min(100%, calc((100vh - 196px) * 16 / 9)); }
   html.tv #watchTitle { display:none; }
   html.tv .under { margin-top:12px; }
-  html.tv .under > button { min-height:72px; font-size:28px; padding:8px 32px; }
+  html.tv .under { flex-wrap:nowrap; gap:14px; }
+  html.tv .under > button { min-width:0; min-height:72px; font-size:26px; padding:8px 22px; white-space:nowrap; }
+  html.tv #startBtn { min-width:190px; }
+  #ptrNote { bottom:20px; font-size:26px; }
 </style>
 </head>
 <body>
@@ -254,7 +257,11 @@
     <div id="playerBox"></div>
     <div id="watchTitle"></div>
     <div class="under">
+      <button class="big" id="rewBtn" hidden>◀ 10びょう</button>
       <button class="big primary" id="startBtn">はじめる</button>
+      <button class="big" id="fwdBtn" hidden>10びょう ▶</button>
+      <button class="big" id="ccBtn" aria-pressed="false" hidden>じまく</button>
+      <button class="big" id="ptrBtn" hidden>ゆびで おす</button>
       <button class="big gray" id="nextBtn">ほかをさがす</button>
     </div>
     <div id="timeUpBox" hidden>
@@ -268,6 +275,7 @@
 
 <div id="busy" class="pill" hidden><span class="spin"></span>よみこみ中…</div>
 <div id="toast" class="pill" hidden></div>
+<div id="ptrNote" class="pill" hidden>やじるしで うごかして「けってい」で おす。「もどる」で おわり</div>
 
 <!-- じかんをたす? -->
 <div id="confirm" hidden>
@@ -301,7 +309,8 @@
     if (vpMeta) vpMeta.setAttribute("content", "width=1366");   // 1920x1080 のテレビで iPad と同じ大きさに見せる
   }
   // テレビのときだけ中身が入る(initTv)
-  var tv = { lastCard: null, afterLoad: function () {}, playing: function () {}, reset: function () {} };
+  var tv = { lastCard: null, afterLoad: function () {}, playing: function () {}, reset: function () {},
+             buttons: function () {}, gone: function () {}, onPlaying: function () {} };
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -812,6 +821,7 @@
     $("timeUpBox").hidden = true;
     $("startBtn").hidden = false;
     $("nextBtn").hidden = false;
+    tv.buttons(true);
   }
 
   // 見ている間に時間を足したとき
@@ -869,6 +879,7 @@
     sess.player = null;
     $("playerBox").innerHTML = "";
     tv.playing(false);
+    tv.gone();
   }
 
   // 残りが0になったら1回だけ止める。プレーヤーを消して全画面を閉じ、案内を出す
@@ -880,6 +891,7 @@
     $("timeUpBox").hidden = false;
     $("startBtn").hidden = true;
     $("nextBtn").hidden = true;
+    tv.buttons(false);
     renderWatchLeft(sess);
   }
 
@@ -931,6 +943,7 @@
   function onState(sess, st) {
     if (sess.closed) return;
     if (W === sess) setPlayLabel(st === 1 || st === 3);
+    if (W === sess && st === 1) tv.onPlaying();
     if (st === 2) {
       try { sess.position = sess.player.getCurrentTime() || sess.position; } catch (e) {}
       if (sess.started) { sess.lastSaveAt = Date.now(); requestSave(sess); }
@@ -1098,6 +1111,7 @@
         if (main < -6) return;
         if (horiz) {
           gap = Math.max(0, q.top - r.bottom, r.top - q.bottom);
+          if (gap > 0) return;   // 左右は、同じ段にあるものだけ
           off = Math.abs((q.top + q.bottom) - (r.top + r.bottom)) / 2;
         } else {
           gap = Math.max(0, q.left - r.right, r.left - q.right);
@@ -1140,6 +1154,47 @@
       try { W.player.seekTo(Math.max(0, (W.player.getCurrentTime() || 0) + d), true); } catch (e) {}
     }
 
+    // 10びょう もどす/すすめる
+    $("rewBtn").onclick = function () { seek(-10); };
+    $("fwdBtn").onclick = function () { seek(10); };
+    // じまく: テレビでは、はじめは けしておく(きりかえは このテレビに おぼえる)
+    var ccOn = false;
+    try { ccOn = localStorage.getItem("gohoubi.cc") === "1"; } catch (e) {}
+    function applyCc() {
+      $("ccBtn").setAttribute("aria-pressed", String(ccOn));
+      var p = W && W.player;
+      if (!p) return;
+      try { if (ccOn) p.loadModule("captions"); else p.unloadModule("captions"); } catch (e) {}
+    }
+    $("ccBtn").onclick = function () {
+      ccOn = !ccOn;
+      try { localStorage.setItem("gohoubi.cc", ccOn ? "1" : "0"); } catch (e) {}
+      applyCc();
+      toast(ccOn ? "じまくを だすよ" : "じまくを けすよ");
+    };
+    // ゆびで おす: テレビのアプリが出す ゆび(まる)を うごかして、プレーヤーの中のボタン(こうこくのスキップなど)を自分で押す
+    var canPtr = !!(TVB && typeof TVB.pointer === "function"), ptrOn = false;
+    function ptrOff(tell) {
+      if (!ptrOn) return;
+      ptrOn = false;
+      $("ptrNote").hidden = true;
+      if (tell) { try { TVB.pointer(false, 0, 0, 0, 0); } catch (e) {} }
+    }
+    $("ptrBtn").onclick = function () {
+      if (!canPtr || !W || !W.player) return;
+      var r = $("playerBox").getBoundingClientRect(), w = window.innerWidth, h = window.innerHeight;
+      ptrOn = true;
+      $("ptrNote").hidden = false;
+      try { TVB.pointer(true, r.left / w, r.top / h, r.right / w, r.bottom / h); } catch (e) { ptrOff(false); }
+    };
+    tv.buttons = function (on) {
+      ["rewBtn", "fwdBtn", "ccBtn"].forEach(function (id) { $(id).hidden = !on; });
+      $("ptrBtn").hidden = !on || !canPtr;
+    };
+    tv.gone = function () { ptrOff(true); };
+    tv.onPlaying = function () { applyCc(); setTimeout(applyCc, 1500); };
+    applyCc();
+
     tv.reset = function () { def(); };
     tv.afterLoad = function (first) { if (first && vis(first)) set(first); else check(); };
     tv.playing = function (on) { try { if (TVB && TVB.playing) TVB.playing(!!on); } catch (e) {} };
@@ -1174,8 +1229,11 @@
       voice: function (id, text) {
         text = String(text || "").trim();
         if (!text) { toast("きこえなかったよ"); return; }
-        fill(id, text, true);
+        fill(id, text, false);   // 入れるだけ。さがすのは「さがす」を押したとき
+        var go = $(id === "who" ? "whoForm" : "searchForm").querySelector('button[type="submit"]');
+        if (S && go && vis(go)) set(go);   // わくを「さがす」に おく(けっていで さがす)
       },
+      pointerOff: function () { ptrOff(false); },
       voiceError: function () { toast("こえで さがすのは つかえないよ"); },
       // ホームボタンなどで画面が見えなくなった: 止めて、見た分を保存する
       hidden: function () {
