@@ -118,6 +118,7 @@
   .tag.len { background:#374151; color:#fff; font-size:24px; }
   .tag.resume { background:#ffedd5; color:#c2410c; font-weight:bold; }
   .tag.seen { background:#dcfce7; color:#15803d; font-weight:bold; }
+  .tag.new { background:#dc2626; color:#fff; font-weight:bold; }
   #more { display:block; margin:28px auto 0; }
 
   /* ③ */
@@ -157,6 +158,7 @@
   /* テレビ(リモコンで動かす)。html に tv が付いたときだけ効く */
   .mic { flex:none; width:76px; padding:0; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; }
   .mic svg { width:38px; height:38px; }
+  html.tv { --bg:#d3c6b4; --sub:#4b5563; }   /* テレビは まぶしいので、背景を少し暗く */
   html.tv button:active { transform:none; }
   html.tv .chk { padding:0 14px; border-radius:18px; }
   html.tv .tvf { outline:7px solid #2563eb; outline-offset:4px; box-shadow:0 0 0 4px #fff; position:relative; z-index:2; }
@@ -222,8 +224,8 @@
         <div class="find-rows">
           <form class="search" id="whoForm" autocomplete="off">
             <div class="who-wrap">
-              <input id="who" type="search" placeholder="だれの?" enterkeyhint="search" aria-label="だれの">
               <button type="button" id="favToggle" aria-label="すきなひとをえらぶ" aria-expanded="false" hidden>▼</button>
+              <input id="who" type="search" placeholder="だれの?" enterkeyhint="search" aria-label="だれの">
               <div id="favMenu" hidden></div>
             </div>
             <button type="button" class="mic" data-for="who" aria-label="こえで いれる" hidden></button>
@@ -317,6 +319,8 @@ window.addEventListener("error", function (e) {
   // ---- せってい(gas と pass は # からだけ読む。画面やログには出さない) ----
   var hp = new URLSearchParams(location.hash.replace(/^#/, ""));
   var GAS = hp.get("gas") || "";
+  // アプリの設定画面などで gas= の先頭の https が消されても動くようにする
+  if (GAS && !/^https:\/\//i.test(GAS)) GAS = "https://" + GAS.replace(/^[a-z]*:?\/*/i, "");
   var PASS = hp.get("pass") || "";
 
   // テレビのアプリ(tv/ の自作アプリ)の中で開いたとき。#tv=1 はパソコンのキーボードで試す用
@@ -405,6 +409,19 @@ window.addEventListener("error", function (e) {
     if (n >= 1e5) return Math.floor(n / 1e4) + "まん回";
     if (n >= 1e4) return one(n / 1e4) + "まん回";
     return n.toLocaleString("ja-JP") + "回";
+  }
+  // 公開日: 2026/11/3
+  function fmtDay(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return "";
+    return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+  }
+  // 公開されて1週間以内
+  function isNew(iso) {
+    var t = new Date(iso).getTime();
+    if (!iso || isNaN(t)) return false;
+    var age = Date.now() - t;
+    return age >= 0 && age < 7 * 86400000;
   }
   function fmtLen(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -607,7 +624,8 @@ window.addEventListener("error", function (e) {
     var over = S.remaining <= 0;
     $("timeUpPick").hidden = !over;
     $("pickMain").hidden = over;
-    $("more").hidden = S.loading || !S.next;
+    $("more").hidden = !(S.moreLoading || (!S.loading && S.next));
+    $("more").disabled = !!S.moreLoading;
     $("quotaMsg").hidden = !S.quota;
     $("notFoundMsg").hidden = !S.notFound;
     $("emptyMsg").hidden = S.loading || S.quota || S.notFound || S.items.length > 0 || !!S.next || !S.loaded;
@@ -626,6 +644,7 @@ window.addEventListener("error", function (e) {
   // 条件が変わった: cursor を消して読みなおす
   function reload() {
     S.items = []; S.seen = {}; S.next = null; S.quota = false; S.notFound = false; S.loaded = false; S.chanId = null;
+    S.moreLoading = false;
     $("list").innerHTML = "";
     $("pickErr").hidden = true;
     if (!isActive()) {      // はじめの画面にもどる(さがさない)
@@ -641,18 +660,23 @@ window.addEventListener("error", function (e) {
     var autoLeft = 3;   // items が空で nextCursor があるときの自動の続き(1回の操作で3回まで)
     var firstNew = null;
     S.loading = true;
+    S.moreLoading = !!more;
     $("pickErr").hidden = true;
     renderPick();
     var step = function (cursor) {
       api("list", buildQuery(cursor)).then(function (r) {
         if (my !== gen || !S) return;
-        if (typeof r.remainingSeconds === "number") S.remaining = r.remainingSeconds;
+        if (typeof r.remainingSeconds === "number") {
+          // 保存がまだのときは、答えののこりじかんが古いことがあるので、少ないほうを使う
+          S.remaining = saveQ.length ? Math.min(S.remaining, r.remainingSeconds) : r.remainingSeconds;
+        }
         if (r.quota === true) S.quota = true;
         if (r.notFound === true) S.notFound = true;
         if (r.channelId) S.chanId = r.channelId;
         var added = 0;
         (r.items || []).forEach(function (it) {
           if (!it || !it.videoId || S.seen[it.videoId]) return;
+          if ((it.resume ? Number(it.resume.left) : Number(it.seconds)) > S.remaining) return;   // のこりじかんに入らない動画は出さない
           S.seen[it.videoId] = true;
           S.items.push(it);
           var el = card(it);
@@ -662,12 +686,12 @@ window.addEventListener("error", function (e) {
         });
         S.next = r.nextCursor || null;
         if (added === 0 && S.next && autoLeft > 0 && S.remaining > 0) { autoLeft--; step(S.next); return; }
-        S.loading = false; S.loaded = true;
+        S.loading = false; S.loaded = true; S.moreLoading = false;
         renderPick();
         tv.afterLoad(firstNew);
       }, function () {
         if (my !== gen || !S) return;
-        S.loading = false;
+        S.loading = false; S.moreLoading = false;
         renderPick();
         $("more").hidden = true;
         showErr("pickErr", function () { if (more) load(true); else reload(); });
@@ -693,9 +717,13 @@ window.addEventListener("error", function (e) {
     tags.appendChild(len);
     var rs = document.createElement("span"); rs.className = "tag resume";
     var sn = document.createElement("span"); sn.className = "tag seen"; sn.textContent = "見おわった";
-    tags.appendChild(rs); tags.appendChild(sn);
-    var vw = document.createElement("div"); vw.className = "views"; vw.textContent = "さいせい " + fmtViews(it.viewCount);
-    vw.hidden = typeof it.viewCount !== "number";
+    var nw = document.createElement("span"); nw.className = "tag new"; nw.textContent = "NEW";
+    tags.appendChild(rs); tags.appendChild(sn); tags.appendChild(nw);
+    var vw = document.createElement("div"); vw.className = "views";
+    var day = fmtDay(it.publishedAt);
+    var hasViews = typeof it.viewCount === "number";
+    vw.textContent = (hasViews ? "再生 " + fmtViews(it.viewCount) : "") + (hasViews && day ? " ・ " : "") + day;
+    vw.hidden = !hasViews && !day;
     var foot = document.createElement("div"); foot.className = "foot";
     foot.appendChild(c); foot.appendChild(vw);
     info.appendChild(t); info.appendChild(foot);
@@ -704,6 +732,7 @@ window.addEventListener("error", function (e) {
       rs.hidden = !it.resume;
       if (it.resume) rs.textContent = "つづき " + minsUp(it.resume.left) + "ふん";
       sn.hidden = !it.watched;
+      nw.hidden = !!it.resume || !!it.watched || !isNew(it.publishedAt);   // ほかの表示があるときは出さない
     };
     it._mark();
     b.onclick = function () { tv.lastCard = b; openWatch(it); };
@@ -827,7 +856,8 @@ window.addEventListener("error", function (e) {
     if (S.remaining <= 0) return;
     var sess = {
       item: it, videoId: it.videoId, childId: S.childId, recordId: uuid(),
-      acc: 0, lastPos: null, position: it.resume ? Number(it.resume.position) || 0 : 0,
+      acc: 0, lastPos: null,
+      position: it.resume ? Math.max(0, (Number(it.resume.position) || 0) - 10) : 0,   // つづきは、とめた場所の10秒前から
       startRemaining: S.remaining, mismatch: 0, started: false, lastSaveAt: 0,
       timeUp: false, keepGoing: false, ended: false, closed: false, player: null, tick: null
     };
@@ -999,7 +1029,29 @@ window.addEventListener("error", function (e) {
     if (S && S.childId === sess.childId) {
       S.remaining = Math.min(S.remaining, Math.floor(leftOf(sess)));
       openPick(title);
+      if ((sess.started || sess.ended) && isActive() && S.remaining > 0) refreshAfterWatch();
     }
+  }
+
+  // 見たあと: のこりじかんに入らない動画を出さないよう、さがしなおす。
+  // 見た分の保存がおわるのを待つ(先にさがすと、古いのこりじかんで答えが返るため)
+  function refreshAfterWatch() {
+    var s = S, my = ++gen;
+    s.items = []; s.seen = {}; s.next = null; s.loaded = false; s.loading = true; s.moreLoading = false;
+    $("list").innerHTML = "";
+    renderPick();
+    busyOn();
+    var done = false;
+    var go = function () {
+      if (done) return;
+      done = true;
+      busyOff();
+      if (S !== s || gen !== my || W) return;
+      reload();
+    };
+    saveWaiters.push(go);
+    setTimeout(go, 8000);   // 保存の返事がおそいときも、止まったままにしない
+    flushSaveWaiters();
   }
 
   $("nextBtn").onclick = function () { if (W) leave(W, "つぎをえらぶ"); };
@@ -1013,7 +1065,12 @@ window.addEventListener("error", function (e) {
   };
 
   // ---- saveWatch: 同時に1つだけ。失敗したら次の機会に最新の値で ----
-  var saveQ = [], sending = false;
+  var saveQ = [], sending = false, saveWaiters = [];
+  function flushSaveWaiters(force) {
+    if (!force && (sending || saveQ.length)) return;
+    var list = saveWaiters; saveWaiters = [];
+    list.forEach(function (f) { f(); });
+  }
   function snapshot(sess) {
     return {
       childId: sess.childId, recordId: sess.recordId, videoId: sess.videoId,
@@ -1038,8 +1095,10 @@ window.addEventListener("error", function (e) {
         renderPick();
       }
       pump();
+      flushSaveWaiters();
     }, function () {
       sending = false; // 列にのこしておき、次に保存するときに最新の値で送る
+      flushSaveWaiters(true);
     });
   }
   function flushOnHide() {
@@ -1074,7 +1133,7 @@ window.addEventListener("error", function (e) {
     function items() {
       return Array.prototype.filter.call(
         scopeEl().querySelectorAll('button, input[type="search"], label.chk, a[href]'),
-        function (el) { return vis(el) && (!el.disabled || el.id === "startBtn"); });
+        function (el) { return vis(el) && (!el.disabled || el.id === "startBtn" || el.id === "more"); });
     }
     function set(el) {
       if (cur) cur.classList.remove("tvf");
