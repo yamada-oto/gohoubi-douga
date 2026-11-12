@@ -26,12 +26,12 @@ javac -encoding UTF-8 -source 8 -target 8 -bootclasspath "$PF" -Xlint:-options -
 # なければ その場かぎりの鍵で署名する(その場合、入れなおすときは先にテレビから消す必要がある)
 KS=build/sign.keystore
 if [ -n "${TV_KEYSTORE_B64:-}" ] && [ -n "${TV_KEYSTORE_PASS:-}" ]; then
-  echo "$TV_KEYSTORE_B64" | base64 -d > "$KS"; KSPASS="$TV_KEYSTORE_PASS"; echo "sign: fixed key"
+  echo "$TV_KEYSTORE_B64" | tr -d ' \n\r' | base64 -d > "$KS"; KSPASS="$TV_KEYSTORE_PASS"; echo "sign: fixed key"; echo "固定の鍵" > build/signmode
 else
   KSPASS="$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')"
   keytool -genkeypair -keystore "$KS" -storetype PKCS12 -storepass "$KSPASS" -keypass "$KSPASS" -alias gohoubi \
     -keyalg RSA -keysize 2048 -validity 10950 -dname "CN=gohoubi-douga tv" >/dev/null 2>&1
-  echo "sign: one-time key"
+  echo "sign: one-time key"; echo "その場かぎりの鍵" > build/signmode
 fi
 KSPASS="$KSPASS" "$BT/apksigner" sign --ks "$KS" --ks-pass env:KSPASS --ks-key-alias gohoubi \
   --out build/gohoubi-tv.apk build/aligned.apk

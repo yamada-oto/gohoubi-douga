@@ -160,7 +160,13 @@
   html.tv #appHeader .tvf { outline-color:#fff; box-shadow:0 0 0 4px #1d4ed8; outline-offset:5px; }
   html.tv .card.tvf { transform:scale(1.03); }
   html.tv #s-watch .screen { max-width:none; padding:10px 28px 0; }
-  html.tv #playerBox { width:min(100%, calc((100vh - 196px) * 16 / 9)); }
+  html.tv #playerBox { width:min(100%, calc((100vh - 236px) * 16 / 9)); }
+  #tvHint { text-align:center; margin-top:8px; font-size:22px; }
+  /* テレビ: みている間は 画面いっぱい(とめると ボタンのある画面にもどる) */
+  html.tvfull, html.tvfull body { background:#000; }
+  html.tvfull #appHeader, html.tvfull .under, html.tvfull #tvHint { display:none !important; }
+  html.tvfull #s-watch .screen { padding:0; }
+  html.tvfull #playerBox { width:100vw; height:100vh; aspect-ratio:auto; }
   html.tv #watchTitle { display:none; }
   html.tv .under { margin-top:12px; }
   html.tv .under { flex-wrap:nowrap; gap:14px; }
@@ -260,10 +266,10 @@
       <button class="big" id="rewBtn" hidden>◀ 10びょう</button>
       <button class="big primary" id="startBtn">はじめる</button>
       <button class="big" id="fwdBtn" hidden>10びょう ▶</button>
-      <button class="big" id="ccBtn" aria-pressed="false" hidden>じまく</button>
       <button class="big" id="ptrBtn" hidden>ゆびで おす</button>
       <button class="big gray" id="nextBtn">ほかをさがす</button>
     </div>
+    <div id="tvHint" class="note" hidden>みているとき: ← → で 10びょう ・ けってい で とめる ・ ↑ で ゆび(こうこくを とばす)</div>
     <div id="timeUpBox" hidden>
       <span class="tu-text">じかんになったよ</span>
       <span class="tu-note">つづきをみると、つぎのじかんが へるよ</span>
@@ -1157,21 +1163,9 @@
     // 10びょう もどす/すすめる
     $("rewBtn").onclick = function () { seek(-10); };
     $("fwdBtn").onclick = function () { seek(10); };
-    // じまく: テレビでは、はじめは けしておく(きりかえは このテレビに おぼえる)
-    var ccOn = false;
-    try { ccOn = localStorage.getItem("gohoubi.cc") === "1"; } catch (e) {}
-    function applyCc() {
-      $("ccBtn").setAttribute("aria-pressed", String(ccOn));
-      var p = W && W.player;
-      if (!p) return;
-      try { if (ccOn) p.loadModule("captions"); else p.unloadModule("captions"); } catch (e) {}
-    }
-    $("ccBtn").onclick = function () {
-      ccOn = !ccOn;
-      try { localStorage.setItem("gohoubi.cc", ccOn ? "1" : "0"); } catch (e) {}
-      applyCc();
-      toast(ccOn ? "じまくを だすよ" : "じまくを けすよ");
-    };
+    // じまく: テレビでは、動画ごとに はじめに けす(だしたいときは「ゆび」でプレーヤーの中のボタンを押す)
+    var ccFor = null;
+    function ccOff() { var p = W && W.player; if (!p) return; try { p.unloadModule("captions"); } catch (e) {} }
     // ゆびで おす: テレビのアプリが出す ゆび(まる)を うごかして、プレーヤーの中のボタン(こうこくのスキップなど)を自分で押す
     var canPtr = !!(TVB && typeof TVB.pointer === "function"), ptrOn = false;
     function ptrOff(tell) {
@@ -1180,27 +1174,48 @@
       $("ptrNote").hidden = true;
       if (tell) { try { TVB.pointer(false, 0, 0, 0, 0); } catch (e) {} }
     }
-    $("ptrBtn").onclick = function () {
-      if (!canPtr || !W || !W.player) return;
+    function startPtr() {
+      if (!canPtr || !W || !W.player || ptrOn) return;
       var r = $("playerBox").getBoundingClientRect(), w = window.innerWidth, h = window.innerHeight;
       ptrOn = true;
-      $("ptrNote").hidden = false;
+      $("ptrNote").hidden = full;   // 画面いっぱいのときは、プレーヤーに かぶるので出さない
       try { TVB.pointer(true, r.left / w, r.top / h, r.right / w, r.bottom / h); } catch (e) { ptrOff(false); }
-    };
+    }
+    $("ptrBtn").onclick = startPtr;
     tv.buttons = function (on) {
-      ["rewBtn", "fwdBtn", "ccBtn"].forEach(function (id) { $(id).hidden = !on; });
+      ["rewBtn", "fwdBtn", "tvHint"].forEach(function (id) { $(id).hidden = !on; });
       $("ptrBtn").hidden = !on || !canPtr;
     };
     tv.gone = function () { ptrOff(true); };
-    tv.onPlaying = function () { applyCc(); setTimeout(applyCc, 1500); };
-    applyCc();
+    tv.onPlaying = function () {
+      var p = W && W.player;
+      if (!p || p === ccFor) return;
+      ccFor = p; ccOff(); setTimeout(ccOff, 1500);
+    };
+    // みている間は画面いっぱい。←→ 10びょう、けってい とめる、↑↓ ゆび
+    var full = false;
+    function setFull(on) {
+      on = !!on && !!W && !$("s-watch").hidden;
+      if (on === full) return;
+      full = on;
+      document.documentElement.classList.toggle("tvfull", on);
+      window.scrollTo(0, 0);
+      if (!on) { ptrOff(true); setTimeout(def, 0); }
+    }
+    function fullKey(k) {
+      if (k === "left" || k === "rew") seek(-10);
+      else if (k === "right" || k === "ff") seek(10);
+      else if (k === "ok" || k === "playpause" || k === "pause") { try { W.player.pauseVideo(); } catch (e) {} }
+      else if (k === "up" || k === "down") startPtr();
+    }
 
     tv.reset = function () { def(); };
     tv.afterLoad = function (first) { if (first && vis(first)) set(first); else check(); };
-    tv.playing = function (on) { try { if (TVB && TVB.playing) TVB.playing(!!on); } catch (e) {} };
+    tv.playing = function (on) { try { if (TVB && TVB.playing) TVB.playing(!!on); } catch (e) {} setFull(on); };
 
     window.gohoubiTv = {
       key: function (k) {
+        if (full) { fullKey(k); return; }
         if (k === "up" || k === "down" || k === "left" || k === "right") move(k);
         else if (k === "ok") ok();
         else if (k === "mic") {
