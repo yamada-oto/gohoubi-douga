@@ -8,6 +8,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.os.SystemClock;
+import android.view.InputDevice;
+import android.view.MotionEvent;
+import android.widget.FrameLayout;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.text.InputType;
@@ -52,6 +58,11 @@ public class MainActivity extends Activity {
     boolean setupShown = false;
     String voiceField = null;
     TextView keyView;
+
+    // ゆび(プレーヤーの中のボタンを、リモコンで自分で押すための まる)
+    View cursor;
+    boolean ptrOn = false, ptrOkDown = false, ptrBackDown = false;
+    float px, py, pl, pt, pr, pb;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -212,7 +223,12 @@ public class MainActivity extends Activity {
             }
         });
         web.addJavascriptInterface(new Bridge(), "GohoubiTV");
-        setContentView(web);
+        FrameLayout root = new FrameLayout(this);
+        root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        cursor = new CursorView(this);
+        cursor.setVisibility(View.GONE);
+        root.addView(cursor, new FrameLayout.LayoutParams(dp(44), dp(44)));
+        setContentView(root);
         web.requestFocus();
         web.loadUrl(url);
     }
@@ -223,6 +239,8 @@ public class MainActivity extends Activity {
         if (p != null) p.removeView(web);
         web.destroy();
         web = null;
+        ptrOn = false;
+        cursor = null;
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
@@ -247,6 +265,26 @@ public class MainActivity extends Activity {
                 public void run() {
                     if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
+            });
+        }
+
+        /** ゆびを出す・消す。場所は画面に対する割合(プレーヤーの四角の中だけ動く) */
+        @JavascriptInterface
+        public void pointer(final boolean on, final double l, final double t, final double r, final double b) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (web == null || cursor == null) return;
+                    if (!on) { ptrOn = false; cursor.setVisibility(View.GONE); return; }
+                    int w = web.getWidth(), h = web.getHeight();
+                    pl = (float) (l * w); pt = (float) (t * h); pr = (float) (r * w); pb = (float) (b * h);
+                    px = pl + (pr - pl) * 0.86f;   // こうこくのスキップが出やすい 右下から
+                    py = pt + (pb - pt) * 0.80f;
+                    ptrOkDown = false; ptrBackDown = false;
+                    ptrOn = true;
+                    placeCursor();
+                    cursor.setVisibility(View.VISIBLE);
                 }
             });
         }
@@ -341,6 +379,79 @@ public class MainActivity extends Activity {
         js("window.gohoubiTv&&gohoubiTv.voice(" + JSONObject.quote(id) + "," + JSONObject.quote(text) + ")");
     }
 
+    // ---------------- ゆび ----------------
+    static class CursorView extends View {
+        final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        CursorView(Context c) { super(c); }
+        @Override
+        protected void onDraw(Canvas c) {
+            float r = getWidth() / 2f;
+            p.setStyle(Paint.Style.FILL); p.setColor(0x66000000); c.drawCircle(r, r, r, p);
+            p.setColor(0xFFFFFFFF); c.drawCircle(r, r, r * 0.80f, p);
+            p.setColor(0xFFEA580C); c.drawCircle(r, r, r * 0.52f, p);
+        }
+    }
+
+    void placeCursor() {
+        if (cursor == null) return;
+        px = Math.max(pl, Math.min(pr, px));
+        py = Math.max(pt, Math.min(pb, py));
+        cursor.setTranslationX(px - cursor.getLayoutParams().width / 2f);
+        cursor.setTranslationY(py - cursor.getLayoutParams().height / 2f);
+    }
+
+    void endPointer() {
+        ptrOn = false;
+        if (cursor != null) cursor.setVisibility(View.GONE);
+        js("window.gohoubiTv&&gohoubiTv.pointerOff&&gohoubiTv.pointerOff()");
+    }
+
+    /** ゆびの場所を、指でさわったのと同じように押す */
+    void tap(final float x, final float y) {
+        if (web == null) return;
+        final long t0 = SystemClock.uptimeMillis();
+        MotionEvent d = MotionEvent.obtain(t0, t0, MotionEvent.ACTION_DOWN, x, y, 0);
+        d.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        web.dispatchTouchEvent(d);
+        d.recycle();
+        web.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (web == null) return;
+                MotionEvent u = MotionEvent.obtain(t0, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y, 0);
+                u.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+                web.dispatchTouchEvent(u);
+                u.recycle();
+            }
+        }, 70);
+    }
+
+    /** ゆびが出ている間のリモコン。受けたら true */
+    boolean pointerKey(KeyEvent e) {
+        int c = e.getKeyCode();
+        boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
+        int step = dp(14) + Math.min(e.getRepeatCount(), 12) * dp(4);   // 押しつづけると速くなる
+        switch (c) {
+            case KeyEvent.KEYCODE_DPAD_LEFT: if (down) { px -= step; placeCursor(); } return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: if (down) { px += step; placeCursor(); } return true;
+            case KeyEvent.KEYCODE_DPAD_UP: if (down) { py -= step; placeCursor(); } return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN: if (down) { py += step; placeCursor(); } return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                // 「ゆびで おす」を押した指をはなしたときには 押さない
+                if (down) { if (e.getRepeatCount() == 0) ptrOkDown = true; }
+                else if (ptrOkDown) { ptrOkDown = false; tap(px, py); }
+                return true;
+            case KeyEvent.KEYCODE_BACK:
+                if (down) ptrBackDown = true;
+                else if (ptrBackDown) { ptrBackDown = false; endPointer(); }
+                return true;
+            default:
+                return false;
+        }
+    }
+
     // ---------------- リモコン ----------------
     static String keyName(int c) {
         switch (c) {
@@ -373,6 +484,7 @@ public class MainActivity extends Activity {
             return super.dispatchKeyEvent(e);
         }
         if (web == null) return super.dispatchKeyEvent(e);
+        if (ptrOn) return pointerKey(e) || super.dispatchKeyEvent(e);
         if (c == KeyEvent.KEYCODE_BACK) {
             if (e.getAction() == KeyEvent.ACTION_UP) handleBack();
             return true;
@@ -404,6 +516,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         if (web != null) {
+            if (ptrOn) endPointer();
             js("window.gohoubiTv&&gohoubiTv.hidden()");   // 止めて、見た分を保存する
             web.onPause();
         }
