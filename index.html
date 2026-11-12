@@ -150,6 +150,20 @@
   #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
   #confirm .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
+
+  /* テレビ(リモコンで動かす)。html に tv が付いたときだけ効く */
+  .mic { flex:none; width:76px; padding:0; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; }
+  .mic svg { width:38px; height:38px; }
+  html.tv button:active { transform:none; }
+  html.tv .chk { padding:0 14px; border-radius:18px; }
+  html.tv .tvf { outline:7px solid #2563eb; outline-offset:4px; box-shadow:0 0 0 4px #fff; position:relative; z-index:2; }
+  html.tv #appHeader .tvf { outline-color:#fff; box-shadow:0 0 0 4px #1d4ed8; outline-offset:5px; }
+  html.tv .card.tvf { transform:scale(1.03); }
+  html.tv #s-watch .screen { max-width:none; padding:10px 28px 0; }
+  html.tv #playerBox { width:min(100%, calc((100vh - 196px) * 16 / 9)); }
+  html.tv #watchTitle { display:none; }
+  html.tv .under { margin-top:12px; }
+  html.tv .under > button { min-height:72px; font-size:28px; padding:8px 32px; }
 </style>
 </head>
 <body>
@@ -200,10 +214,12 @@
               <button type="button" id="favToggle" aria-label="すきなひとをえらぶ" aria-expanded="false" hidden>▼</button>
               <div id="favMenu" hidden></div>
             </div>
+            <button type="button" class="mic" data-for="who" aria-label="こえで いれる" hidden></button>
             <button type="submit">さがす</button>
           </form>
           <form class="search" id="searchForm" autocomplete="off">
             <input id="q" type="search" placeholder="なにをみる?" enterkeyhint="search" aria-label="なにをみる">
+            <button type="button" class="mic" data-for="q" aria-label="こえで いれる" hidden></button>
             <button type="submit">さがす</button>
           </form>
         </div>
@@ -276,6 +292,17 @@
   var GAS = hp.get("gas") || "";
   var PASS = hp.get("pass") || "";
 
+  // テレビのアプリ(tv/ の自作アプリ)の中で開いたとき。#tv=1 はパソコンのキーボードで試す用
+  var TVB = window.GohoubiTV || null;
+  var TV = !!TVB || hp.get("tv") === "1";
+  if (TV) {
+    document.documentElement.classList.add("tv");
+    var vpMeta = document.querySelector('meta[name="viewport"]');
+    if (vpMeta) vpMeta.setAttribute("content", "width=1366");   // 1920x1080 のテレビで iPad と同じ大きさに見せる
+  }
+  // テレビのときだけ中身が入る(initTv)
+  var tv = { lastCard: null, afterLoad: function () {}, playing: function () {}, reset: function () {} };
+
   var $ = function (id) { return document.getElementById(id); };
 
   function show(name) {
@@ -302,6 +329,7 @@
     plus: svg('<path d="M5 12h14"/><path d="M12 5v14"/>'),
     back: svg('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>'),
     heart: svg('<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>'),
+    mic: svg('<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>'),
     heartFill: svg('<path fill="currentColor" d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>')
   };
   var KID_ICONS = { c1: "carrot", c2: "image" };
@@ -459,6 +487,7 @@
       b.onclick = function () { pickChild(k); };
       box.appendChild(b);
     });
+    tv.reset();
   }
   function goWho() {
     gen++;
@@ -480,6 +509,9 @@
         q: "", who: "", popular: false, notScary: false, hideWatched: false,
         items: [], seen: {}, next: null, quota: false, notFound: false, loading: false, addReq: null
       };
+      $("list").innerHTML = "";   // 前にえらんだ子の検索結果を残さない
+      tv.lastCard = null;
+      pickedWho = null;
       openPick("えらぶ");
     }, function () {
       showErr("whoErr", function () { pickChild(k); });
@@ -574,6 +606,7 @@
   function load(more) {
     var my = ++gen;
     var autoLeft = 3;   // items が空で nextCursor があるときの自動の続き(1回の操作で3回まで)
+    var firstNew = null;
     S.loading = true;
     $("pickErr").hidden = true;
     renderPick();
@@ -589,13 +622,16 @@
           if (!it || !it.videoId || S.seen[it.videoId]) return;
           S.seen[it.videoId] = true;
           S.items.push(it);
-          $("list").appendChild(card(it));
+          var el = card(it);
+          if (!firstNew) firstNew = el;
+          $("list").appendChild(el);
           added++;
         });
         S.next = r.nextCursor || null;
         if (added === 0 && S.next && autoLeft > 0 && S.remaining > 0) { autoLeft--; step(S.next); return; }
         S.loading = false; S.loaded = true;
         renderPick();
+        tv.afterLoad(firstNew);
       }, function () {
         if (my !== gen || !S) return;
         S.loading = false;
@@ -637,7 +673,7 @@
       sn.hidden = !it.watched;
     };
     it._mark();
-    b.onclick = function () { openWatch(it); };
+    b.onclick = function () { tv.lastCard = b; openWatch(it); };
     return b;
   }
 
@@ -794,7 +830,7 @@
   }
 
   // 「はじめる」: 動かなければ、プレーヤーの ▶ を案内する
-  function setPlayLabel(playing) { $("startBtn").textContent = playing ? "とめる" : "はじめる"; }
+  function setPlayLabel(playing) { $("startBtn").textContent = playing ? "とめる" : "はじめる"; tv.playing(playing); }
   $("startBtn").onclick = function () {
     var sess = W;
     if (!sess || !sess.player || !sess.player.playVideo) return;
@@ -832,6 +868,7 @@
     try { if (sess.player && sess.player.destroy) sess.player.destroy(); } catch (e) {}
     sess.player = null;
     $("playerBox").innerHTML = "";
+    tv.playing(false);
   }
 
   // 残りが0になったら1回だけ止める。プレーヤーを消して全画面を閉じ、案内を出す
@@ -980,6 +1017,191 @@
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden" && W && W.started) requestSave(W);
   });
+
+  // ================= テレビ(リモコン) =================
+  // 上下左右で青いわくを動かし、決定で押す。プレーヤーの中には入らない(プレーヤーに何も重ねない)
+  function initTv() {
+    var cur = null, saved = null, lastScope = "main";
+    var mics = document.querySelectorAll(".mic");
+    Array.prototype.forEach.call(mics, function (m) {
+      m.innerHTML = ICONS.mic; m.hidden = false;
+      m.onclick = function () { listen(m.getAttribute("data-for")); };
+    });
+
+    function vis(el) { return el.getClientRects().length > 0; }
+    function scopeEl() {
+      if (!$("confirm").hidden) return $("confirm");
+      if (!$("favMenu").hidden) return $("favMenu");
+      return document.body;
+    }
+    function items() {
+      return Array.prototype.filter.call(
+        scopeEl().querySelectorAll('button, input[type="search"], label.chk, a[href]'),
+        function (el) { return vis(el) && (!el.disabled || el.id === "startBtn"); });
+    }
+    function set(el) {
+      if (cur) cur.classList.remove("tvf");
+      cur = el || null;
+      if (!cur) return;
+      cur.classList.add("tvf");
+      if (cur.closest("#favMenu")) cur.scrollIntoView({ block: "nearest" });
+      else if (cur.closest("#list") || cur.id === "more") cur.scrollIntoView({ block: "center" });
+      else if (!cur.closest("#appHeader")) window.scrollTo(0, 0);
+    }
+    function def(prev) {
+      var sc = scopeEl(), el = null;
+      if (sc.id === "confirm") el = $("noAdd");            // 押しまちがいで ポイントをつかわないように「やめる」から
+      else if (sc.id === "favMenu") el = sc.querySelector("button");
+      else if (prev === "favMenu" && pickedWho) el = $("whoForm").querySelector('button[type="submit"]');
+      else if (!$("s-who").hidden) el = $("kids").querySelector("button");
+      else if (!$("s-pick").hidden) {
+        if (tv.lastCard && document.body.contains(tv.lastCard) && vis(tv.lastCard)) el = tv.lastCard;
+        else if (!$("timeUpPick").hidden) el = $("addBtn2");
+        else el = $("who");
+      }
+      else if (!$("s-watch").hidden) el = $("timeUpBox").hidden ? $("startBtn") : $("keepBtn");
+      if (!el || !vis(el)) el = items()[0] || null;
+      set(el);
+    }
+    // 画面が変わって、わくの場所がなくなったら置きなおす
+    function check() {
+      var sc = scopeEl().id || "main";
+      if (sc !== lastScope) {
+        var prev = lastScope;
+        if (prev === "main") saved = cur;
+        lastScope = sc;
+        var picked = prev === "favMenu" && pickedWho && $("who").value === pickedWho.name;
+        if (sc === "main" && !picked && saved && items().indexOf(saved) >= 0) { set(saved); saved = null; return; }
+        def(prev);
+        return;
+      }
+      if (!cur || items().indexOf(cur) < 0) def();
+    }
+    var checkTimer = null;
+    new MutationObserver(function () {
+      if (checkTimer) return;
+      checkTimer = setTimeout(function () { checkTimer = null; check(); }, 0);
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "disabled"] });
+
+    function move(dir) {
+      var list = items();
+      if (!cur || list.indexOf(cur) < 0) { def(); return; }
+      var r = cur.getBoundingClientRect(), best = null, bestScore = Infinity;
+      var horiz = (dir === "left" || dir === "right");
+      list.forEach(function (el) {
+        if (el === cur) return;
+        var q = el.getBoundingClientRect(), main, gap, off;
+        if (dir === "right") main = q.left - r.right;
+        else if (dir === "left") main = r.left - q.right;
+        else if (dir === "down") main = q.top - r.bottom;
+        else main = r.top - q.bottom;
+        if (main < -6) return;
+        if (horiz) {
+          gap = Math.max(0, q.top - r.bottom, r.top - q.bottom);
+          off = Math.abs((q.top + q.bottom) - (r.top + r.bottom)) / 2;
+        } else {
+          gap = Math.max(0, q.left - r.right, r.left - q.right);
+          off = Math.abs((q.left + q.right) - (r.left + r.right)) / 2;
+        }
+        var score = Math.max(0, main) + gap * 4 + off * 0.05;
+        if (score < bestScore) { bestScore = score; best = el; }
+      });
+      if (best) set(best);
+    }
+
+    function edit(el) {
+      if (TVB && TVB.input) TVB.input(el.id, el.getAttribute("placeholder") || "", el.value);
+      else el.focus();
+    }
+    function listen(id) {
+      if (TVB && TVB.listen) TVB.listen(id);
+      else toast("こえで さがすのは つかえないよ");
+    }
+    function ok() {
+      if (busyCount) return;                 // よみこみ中の 二度おしは うけつけない
+      check();
+      var el = cur; if (!el) return;
+      if (el.matches('input[type="search"]')) edit(el);
+      else if (el.matches("label.chk")) el.querySelector("input").click();
+      else el.click();
+    }
+    function fill(id, text, run) {
+      var el = $(id);
+      if (!el || !S || $("s-pick").hidden) return;
+      el.value = text;
+      if (id === "who") pickedWho = null;
+      if (run) runSearch(id === "who" ? "who" : "word");
+    }
+    function playerState() {
+      try { return (W && W.player && W.player.getPlayerState) ? W.player.getPlayerState() : -1; } catch (e) { return -1; }
+    }
+    function seek(d) {
+      if (!W || !W.player || !W.player.seekTo) return;
+      try { W.player.seekTo(Math.max(0, (W.player.getCurrentTime() || 0) + d), true); } catch (e) {}
+    }
+
+    tv.reset = function () { def(); };
+    tv.afterLoad = function (first) { if (first && vis(first)) set(first); else check(); };
+    tv.playing = function (on) { try { if (TVB && TVB.playing) TVB.playing(!!on); } catch (e) {} };
+
+    window.gohoubiTv = {
+      key: function (k) {
+        if (k === "up" || k === "down" || k === "left" || k === "right") move(k);
+        else if (k === "ok") ok();
+        else if (k === "mic") {
+          if (!S || $("s-pick").hidden || $("pickMain").hidden || !$("confirm").hidden) return;
+          var id = "q";
+          if (cur && cur.id === "who") id = "who";
+          else if (cur && cur.classList.contains("mic")) id = cur.getAttribute("data-for");
+          listen(id);
+        }
+        else if ($("s-watch").hidden || $("startBtn").hidden) return;
+        else if (k === "playpause") $("startBtn").click();
+        else if (k === "play") { if (playerState() !== 1 && playerState() !== 3) $("startBtn").click(); }
+        else if (k === "pause") { if (playerState() === 1 || playerState() === 3) $("startBtn").click(); }
+        else if (k === "rew") seek(-10);
+        else if (k === "ff") seek(10);
+      },
+      // もどるボタン。ここで受けたら true(① では false を返して、アプリを閉じる)
+      back: function () {
+        if (!$("confirm").hidden) { $("noAdd").click(); return true; }
+        if (!$("favMenu").hidden) { closeFavs(); return true; }
+        if (W) { leave(W, "つぎをえらぶ"); return true; }
+        if (S) { goWho(); return true; }
+        return false;
+      },
+      text: function (id, text, run) { fill(id, String(text || "").trim(), !!run); },
+      voice: function (id, text) {
+        text = String(text || "").trim();
+        if (!text) { toast("きこえなかったよ"); return; }
+        fill(id, text, true);
+      },
+      voiceError: function () { toast("こえで さがすのは つかえないよ"); },
+      // ホームボタンなどで画面が見えなくなった: 止めて、見た分を保存する
+      hidden: function () {
+        if (!W) return;
+        try { if (W.player && W.player.pauseVideo) W.player.pauseVideo(); } catch (e) {}
+        if (W.started) requestSave(W);
+      }
+    };
+
+    if (!TVB) {   // パソコンのキーボードで試すとき
+      document.addEventListener("keydown", function (e) {
+        var typing = document.activeElement && document.activeElement.matches && document.activeElement.matches("input[type=search]");
+        var map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "ok", Escape: "back" };
+        var k = map[e.key];
+        if (!k) return;
+        if (typing) {
+          if (k === "left" || k === "right" || k === "ok") return;
+          document.activeElement.blur();
+        }
+        e.preventDefault();
+        if (k === "back") window.gohoubiTv.back(); else window.gohoubiTv.key(k);
+      });
+    }
+    try { if (TVB && TVB.setNav) TVB.setNav(true); } catch (e) {}
+  }
+  if (TV) initTv();
 
   // ---- はじめ ----
   if (!GAS || !PASS) { show("s-nosetup"); return; }
