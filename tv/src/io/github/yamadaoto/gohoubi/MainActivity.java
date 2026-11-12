@@ -63,6 +63,15 @@ public class MainActivity extends Activity {
     View cursor;
     boolean ptrOn = false, ptrOkDown = false, ptrBackDown = false;
     float px, py, pl, pt, pr, pb;
+    static final int PTR_IDLE_MS = 6000;   // さわらないと ゆびは自分で消える
+    final Runnable ptrIdle = new Runnable() {
+        @Override public void run() { if (ptrOn) endPointer(); }
+    };
+    void ptrTouch() {
+        if (cursor == null) return;
+        cursor.removeCallbacks(ptrIdle);
+        cursor.postDelayed(ptrIdle, PTR_IDLE_MS);
+    }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -276,7 +285,7 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     if (web == null || cursor == null) return;
-                    if (!on) { ptrOn = false; cursor.setVisibility(View.GONE); return; }
+                    if (!on) { ptrOn = false; cursor.removeCallbacks(ptrIdle); cursor.setVisibility(View.GONE); return; }
                     int w = web.getWidth(), h = web.getHeight();
                     pl = (float) (l * w); pt = (float) (t * h); pr = (float) (r * w); pb = (float) (b * h);
                     px = pl + (pr - pl) * 0.86f;   // こうこくのスキップが出やすい 右下から
@@ -285,6 +294,7 @@ public class MainActivity extends Activity {
                     ptrOn = true;
                     placeCursor();
                     cursor.setVisibility(View.VISIBLE);
+                    ptrTouch();
                 }
             });
         }
@@ -402,7 +412,7 @@ public class MainActivity extends Activity {
 
     void endPointer() {
         ptrOn = false;
-        if (cursor != null) cursor.setVisibility(View.GONE);
+        if (cursor != null) { cursor.removeCallbacks(ptrIdle); cursor.setVisibility(View.GONE); }
         js("window.gohoubiTv&&gohoubiTv.pointerOff&&gohoubiTv.pointerOff()");
     }
 
@@ -431,6 +441,7 @@ public class MainActivity extends Activity {
         int c = e.getKeyCode();
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
         int step = dp(14) + Math.min(e.getRepeatCount(), 12) * dp(4);   // 押しつづけると速くなる
+        ptrTouch();
         switch (c) {
             case KeyEvent.KEYCODE_DPAD_LEFT: if (down) { px -= step; placeCursor(); } return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT: if (down) { px += step; placeCursor(); } return true;
