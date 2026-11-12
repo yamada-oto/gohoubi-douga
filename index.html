@@ -150,6 +150,9 @@
   #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
   #confirm .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
+  /* 親が原因を調べるための小さい表示(URL や合言葉は出さない) */
+  .errcode { font-size:18px; color:var(--sub); margin-top:12px; font-weight:normal; }
+  #jsErr { position:fixed; left:8px; bottom:6px; z-index:40; font-size:16px; color:#6b7280; background:#fff; padding:2px 8px; border-radius:8px; }
 
   /* テレビ(リモコンで動かす)。html に tv が付いたときだけ効く */
   .mic { flex:none; width:76px; padding:0; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; }
@@ -295,6 +298,16 @@
 </div>
 
 <script>
+// ページの中のまちがいで止まったとき、画面の左下に小さく理由を出す(URL や合言葉は出さない)
+window.addEventListener("error", function (e) {
+  try {
+    if (!e || !e.message || !e.filename) return;
+    if (String(e.filename).split("#")[0] !== location.href.split("#")[0]) return;   // このページの分だけ
+    var d = document.getElementById("jsErr");
+    if (!d) { d = document.createElement("div"); d.id = "jsErr"; document.body.appendChild(d); }
+    d.textContent = "エラー: " + String(e.message).slice(0, 140) + " (" + (e.lineno || 0) + ")";
+  } catch (x) {}
+});
 (function () {
   "use strict";
 
@@ -457,15 +470,20 @@
         clearTimeout(timer);
         if (!quiet) busyOff();
         var code = (e && e.code) ? e.code : "network";
+        lastErr = action + ":" + code;
         console.warn("gohoubi: " + action + " " + code); // URL と合言葉は出さない
         throw { code: code };
       }
     );
   }
 
-  // うまくいかなかったよ + もういちど
+  // うまくいかなかったよ + もういちど。下に小さく理由の記号を出す(例: children:bad_pass)
+  var lastErr = "";
   function showErr(boxId, retry) {
     var box = $(boxId);
+    var c = box.querySelector(".errcode");
+    if (!c) { c = document.createElement("div"); c.className = "errcode"; box.appendChild(c); }
+    c.textContent = lastErr ? "(" + lastErr + ")" : "";
     box.hidden = false;
     box.querySelector("[data-retry]").onclick = function () { box.hidden = true; retry(); };
   }
