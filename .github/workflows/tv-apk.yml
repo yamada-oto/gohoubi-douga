@@ -1,0 +1,42 @@
+name: tv-apk
+# tv/ を変えると、テレビ版アプリを作りなおして tv.apk に置く
+on:
+  push:
+    branches: [main]
+    paths: ['tv/**', '.github/workflows/tv-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: tv-apk
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        env:
+          TV_KEYSTORE_B64: ${{ secrets.TV_KEYSTORE_B64 }}
+          TV_KEYSTORE_PASS: ${{ secrets.TV_KEYSTORE_PASS }}
+        run: bash tv/build.sh "${{ github.run_number }}" 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Publish tv.apk
+        shell: bash
+        run: |
+          cp tv/build/gohoubi-tv.apk tv.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tv.apk
+          git commit -m "テレビ版アプリを作りなおした(0.1.${{ github.run_number }})[skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Save log on failure
+        if: failure()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan tv-build-log
+          cp "$RUNNER_TEMP/build.log" build.log || echo "no log" > build.log
+          git add build.log
+          git commit -m "build log ${{ github.run_number }}"
+          git push -f origin tv-build-log
