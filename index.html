@@ -248,6 +248,7 @@
       <div class="source-row" id="source">
         <span class="source">YouTube のどうが</span>
         <label class="chk"><input type="checkbox" id="popChk">にんきじゅん</label>
+        <label class="chk"><input type="checkbox" id="newChk">あたらしいじゅん</label>
       </div>
       <div id="notFoundMsg" class="msg" hidden>そのひとは みつからなかったよ</div>
       <div id="quotaMsg" class="msg" hidden>きょうはもうさがせないよ。すきなひとからえらんでね</div>
@@ -556,7 +557,7 @@ window.addEventListener("error", function (e) {
         points: typeof r.points === "number" ? r.points : null,
         cost: typeof r.cost === "number" ? r.cost : null,
         favorites: r.favorites || [],
-        q: "", who: "", popular: false, notScary: false, hideWatched: false,
+        q: "", who: "", popular: false, newest: false, notScary: false, hideWatched: false,
         items: [], seen: {}, next: null, quota: false, notFound: false, loading: false, addReq: null
       };
       $("list").innerHTML = "";   // 前にえらんだ子の検索結果を残さない
@@ -577,6 +578,7 @@ window.addEventListener("error", function (e) {
     $("q").value = S.q;
     $("who").value = S.who;
     $("popChk").checked = S.popular;
+    $("newChk").checked = S.newest;
     $("safeChk").checked = S.notScary;
     $("hideSeen").checked = S.hideWatched;
     renderFavs();
@@ -636,6 +638,7 @@ window.addEventListener("error", function (e) {
 
   function buildQuery(cursor) {
     var q = { childId: S.childId, popular: S.popular, notScary: S.notScary, hideWatched: S.hideWatched, cursor: cursor || null };
+    if (S.newest) q.order = "new";
     if (S.who) { q.mode = "person"; q.who = S.who; q.q = S.q; if (S.whoChannelId) q.channelId = S.whoChannelId; }
     else { q.mode = "search"; q.q = S.q; }
     return q;
@@ -790,7 +793,16 @@ window.addEventListener("error", function (e) {
   $("whoForm").onsubmit = function (e) { e.preventDefault(); runSearch("who"); };
   $("bothBtn").onclick = function () { runSearch("both"); };
   // にんきじゅん: いまの検索結果を、再生回数の多い順にならべかえる
-  $("popChk").onchange = function () { S.popular = this.checked; if (isActive()) reload(); };
+  $("popChk").onchange = function () {
+    S.popular = this.checked;
+    if (S.popular) { S.newest = false; $("newChk").checked = false; }   // どちらか1つだけ
+    if (isActive()) reload();
+  };
+  $("newChk").onchange = function () {
+    S.newest = this.checked;
+    if (S.newest) { S.popular = false; $("popChk").checked = false; }   // どちらか1つだけ
+    if (isActive()) reload();
+  };
   $("safeChk").onchange = function () { S.notScary = this.checked; reload(); };
   $("hideSeen").onchange = function () { S.hideWatched = this.checked; reload(); };
   $("more").onclick = function () { if (S.next) load(true); };
