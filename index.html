@@ -68,6 +68,7 @@
   .hdr-avatar { width:48px; height:48px; border-radius:50%; background:#fed7aa; color:var(--accent-deep); display:flex; align-items:center; justify-content:center; flex:none; }
   .hdr-avatar svg { width:30px; height:30px; }
   #whoName { font-size:32px; font-weight:900; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #tvVer { font-size:16px; color:#fed7aa; }   /* テレビのアプリの版(小さく) */
   .hdr-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
   .hdr-time { display:flex; align-items:center; gap:12px; color:#fff; }
   .hdr-time .lbl { font-size:22px; font-weight:bold; }
@@ -192,6 +193,7 @@
   <button class="hdr-btn" id="hdrBack" aria-label="もどる"></button>
   <div class="hdr-who"><span class="hdr-avatar" id="hdrAvatar"></span><span id="whoName"></span><span class="pts" id="hdrPts"></span></div>
   <div class="hdr-right">
+    <span id="tvVer" hidden></span>
     <span class="hdr-time"><span class="lbl">のこりじかん</span><span id="hdrTime"></span></span>
     <button class="hdr-btn" id="addBtn" aria-label="ポイントをつかって じかんをたす"></button>
   </div>
@@ -1436,7 +1438,10 @@ window.addEventListener("error", function (e) {
     }
     try { if (TVB && TVB.setNav) TVB.setNav(true); } catch (e) {}
   }
-  if (TV) initTv();
+  if (TV) {
+    try { if (TVB && TVB.version) { $("tvVer").textContent = "v" + TVB.version(); $("tvVer").hidden = false; } } catch (e) {}
+    initTv();
+  }
 
   // ---- はじめ ----
   if (!GAS || !PASS) { show("s-nosetup"); return; }
