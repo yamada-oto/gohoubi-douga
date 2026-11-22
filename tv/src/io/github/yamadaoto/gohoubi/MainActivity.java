@@ -240,6 +240,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         web.requestFocus();
         web.loadUrl(url);
+        Updater.check(this);   // あたらしい版があれば しらせる(起動ごとに1回)
     }
 
     void destroyWeb() {
