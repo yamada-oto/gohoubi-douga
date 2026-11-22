@@ -107,6 +107,10 @@
   .card .c:active { background:#fed7aa; }
   .tags { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; font-size:22px; }
   .card .views { font-size:19px; color:var(--sub); }
+  .card .mk { display:flex; align-items:center; gap:10px; min-height:60px; margin-top:10px; padding:4px 16px; border-radius:18px;
+              background:#f3f4f6; color:var(--sub); font-size:24px; font-weight:bold; }
+  .card .mk[aria-checked="true"] { background:#dcfce7; color:#15803d; }
+  html.tv .card .mk { display:none; }   /* テレビは長押しのメニューから */
   #chanBar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:6px 0 16px; }
   #chanName { font-size:28px; font-weight:bold; }
   .heart { display:inline-flex; align-items:center; gap:10px; }
@@ -148,9 +152,11 @@
 
   #startMsg { font-size:30px; margin:26px 0 6px; }
 
-  #confirm { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
-  #confirm .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
+  #confirm, #cardMenu { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
+  #confirm .box, #cardMenu .box { background:#fff; border-radius:40px; padding:44px 56px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,.25); }
   #confirm .q { font-size:44px; margin-bottom:30px; }
+  #cardMenu .q { font-size:32px; margin-bottom:28px; max-width:900px; line-height:1.4; }
+  #cardMenu .row { flex-wrap:wrap; }
   /* 親が原因を調べるための小さい表示(URL や合言葉は出さない) */
   .errcode { font-size:18px; color:var(--sub); margin-top:12px; font-weight:normal; }
   #jsErr { position:fixed; left:8px; bottom:6px; z-index:40; font-size:16px; color:#6b7280; background:#fff; padding:2px 8px; border-radius:8px; }
@@ -288,6 +294,18 @@
 <div id="busy" class="pill" hidden><span class="spin"></span>よみこみ中…</div>
 <div id="toast" class="pill" hidden></div>
 <div id="ptrNote" class="pill" hidden>やじるしで うごかして「けってい」で おす。「もどる」で おわり</div>
+
+<!-- テレビ: カードを長押しで出るメニュー -->
+<div id="cardMenu" hidden>
+  <div class="box">
+    <div class="q" id="cardMenuQ"></div>
+    <div class="row" style="justify-content:center">
+      <button class="big primary" id="cmSeen">もうみた</button>
+      <button class="big" id="cmChan">このチャンネルのどうがをみる</button>
+      <button class="big" id="cmClose">やめる</button>
+    </div>
+  </div>
+</div>
 
 <!-- じかんをたす? -->
 <div id="confirm" hidden>
@@ -730,17 +748,54 @@ window.addEventListener("error", function (e) {
     var foot = document.createElement("div"); foot.className = "foot";
     foot.appendChild(c); foot.appendChild(vw);
     info.appendChild(t); info.appendChild(foot);
+    // いちばん下の「もうみた」チェック(押すと『見た』にして、うしろにまわす)
+    var mk = document.createElement("span"); mk.className = "mk"; mk.setAttribute("role", "checkbox");
+    mk.setAttribute("aria-checked", "false"); mk.textContent = "☐ もうみた";
+    mk.onclick = function (e) { e.stopPropagation(); markSeen(it, b); };
+    info.appendChild(mk);
     b.appendChild(tags); b.appendChild(th); b.appendChild(info);
     it._mark = function () {
       rs.hidden = !it.resume;
       if (it.resume) rs.textContent = "つづき " + minsUp(it.resume.left) + "ふん";
       sn.hidden = !it.watched;
       nw.hidden = !!it.resume || !!it.watched || !isNew(it.publishedAt);   // ほかの表示があるときは出さない
+      mk.hidden = !!it.watched;
     };
+    b._it = it;
     it._mark();
     b.onclick = function () { tv.lastCard = b; openWatch(it); };
     return b;
   }
+
+  // 「もうみた」: 見た記録に『見おわった』として保存する(saveWatch をそのまま使う。GAS は変えない)。
+  // 保存できたら、「見おわったのをはぶく」のときは一覧から消し、そうでなければ一番うしろにまわす
+  function markSeen(it, cardEl) {
+    if (!S || it.watched) return;
+    var s = S;
+    api("saveWatch", { childId: s.childId, recordId: uuid(), videoId: it.videoId, watchedSeconds: 0, position: 0, ended: true }).then(function () {
+      it.watched = true; it.resume = null;
+      if (it._mark) it._mark();
+      if (S === s && cardEl && cardEl.parentNode) {
+        if (s.hideWatched) cardEl.parentNode.removeChild(cardEl);
+        else cardEl.parentNode.appendChild(cardEl);
+      }
+      toast("もうみた にしたよ");
+    }, function () { toast("うまくいかなかったよ。もういちど"); });
+  }
+
+  // テレビ: カードの長押しメニュー
+  var menuIt = null, menuCard = null;
+  function openCardMenu(it, cardEl) {
+    menuIt = it; menuCard = cardEl;
+    $("cardMenuQ").textContent = it.title;
+    $("cmSeen").hidden = !!it.watched;
+    $("cmChan").hidden = !it.channelId;
+    $("cardMenu").hidden = false;
+  }
+  function closeCardMenu() { $("cardMenu").hidden = true; menuIt = null; menuCard = null; }
+  $("cmClose").onclick = closeCardMenu;
+  $("cmSeen").onclick = function () { var it = menuIt, c = menuCard; closeCardMenu(); if (it) markSeen(it, c); };
+  $("cmChan").onclick = function () { var it = menuIt; closeCardMenu(); if (it) showChannel(it); };
 
   // kind: word=なにを / who=だれの / both=あわせて
   // ▼やチャンネル名で選んだ人は、名前を書きかえないかぎり チャンネルIDで さがす
@@ -1138,6 +1193,7 @@ window.addEventListener("error", function (e) {
 
     function vis(el) { return el.getClientRects().length > 0; }
     function scopeEl() {
+      if (!$("cardMenu").hidden) return $("cardMenu");
       if (!$("confirm").hidden) return $("confirm");
       if (!$("favMenu").hidden) return $("favMenu");
       return document.body;
@@ -1158,7 +1214,8 @@ window.addEventListener("error", function (e) {
     }
     function def(prev) {
       var sc = scopeEl(), el = null;
-      if (sc.id === "confirm") el = $("noAdd");            // 押しまちがいで ポイントをつかわないように「やめる」から
+      if (sc.id === "cardMenu") el = $("cmSeen").hidden ? $("cmChan") : $("cmSeen");
+      else if (sc.id === "confirm") el = $("noAdd");            // 押しまちがいで ポイントをつかわないように「やめる」から
       else if (sc.id === "favMenu") el = sc.querySelector("button");
       else if (prev === "favMenu" && pickedWho) el = $("whoForm").querySelector('button[type="submit"]');
       else if (!$("s-who").hidden) el = $("kids").querySelector("button");
@@ -1315,6 +1372,10 @@ window.addEventListener("error", function (e) {
 
     window.gohoubiTv = {
       key: function (k) {
+        if (k === "okLong") {   // 決定の長押し: カードならメニュー。それ以外は ふつうの決定と同じ
+          if (!full && cur && cur._it && !busyCount && $("cardMenu").hidden) { openCardMenu(cur._it, cur); return; }
+          k = "ok";
+        }
         if (full) { fullKey(k); return; }
         if (k === "up" || k === "down" || k === "left" || k === "right") move(k);
         else if (k === "ok") ok();
@@ -1334,6 +1395,7 @@ window.addEventListener("error", function (e) {
       },
       // もどるボタン。ここで受けたら true(① では false を返して、アプリを閉じる)
       back: function () {
+        if (!$("cardMenu").hidden) { closeCardMenu(); return true; }
         if (!$("confirm").hidden) { $("noAdd").click(); return true; }
         if (!$("favMenu").hidden) { closeFavs(); return true; }
         if (W) { leave(W, "つぎをえらぶ"); return true; }
@@ -1362,7 +1424,7 @@ window.addEventListener("error", function (e) {
       document.addEventListener("keydown", function (e) {
         var typing = document.activeElement && document.activeElement.matches && document.activeElement.matches("input[type=search]");
         var map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "ok", Escape: "back" };
-        var k = map[e.key];
+        var k = (e.key === "Enter" && e.shiftKey) ? "okLong" : map[e.key];   // パソコンでは Shift+Enter が長押し
         if (!k) return;
         if (typing) {
           if (k === "left" || k === "right" || k === "ok") return;

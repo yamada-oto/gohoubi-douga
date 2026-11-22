@@ -486,6 +486,8 @@ public class MainActivity extends Activity {
         }
     }
 
+    boolean okLongSent = false;
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         int c = e.getKeyCode();
@@ -503,6 +505,17 @@ public class MainActivity extends Activity {
         }
         String k = keyName(c);
         if (k != null && navOn) {
+            if (k.equals("ok")) {
+                // 決定: 離したときに 'ok'。長押し(リピートが始まった)なら、押している間に 'okLong' を1回だけ
+                if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (e.getRepeatCount() == 0) okLongSent = false;
+                    else if (!okLongSent) { okLongSent = true; js("window.gohoubiTv&&gohoubiTv.key('okLong')"); }
+                } else if (e.getAction() == KeyEvent.ACTION_UP) {
+                    if (!okLongSent) js("window.gohoubiTv&&gohoubiTv.key('ok')");
+                    okLongSent = false;
+                }
+                return true;
+            }
             if (e.getAction() == KeyEvent.ACTION_DOWN) js("window.gohoubiTv&&gohoubiTv.key('" + k + "')");
             return true;
         }
